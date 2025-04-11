@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "592905524976",
+    "project_id": "kao-app-android",
+    "storage_bucket": "kao-app-android.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:592905524976:android:f1284f0eba4a43c4071435",
+        "android_client_info": {
+          "package_name": "com.kaoworld.kao_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdGhBbiBq1QBHaWe7p7yvABDALI6ddbpc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

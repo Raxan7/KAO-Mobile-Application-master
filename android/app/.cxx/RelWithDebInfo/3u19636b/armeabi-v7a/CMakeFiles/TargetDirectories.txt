@@ -1,0 +1,2 @@
+/home/saidi/Projects/KAO-Mobile-Application-master/android/app/.cxx/RelWithDebInfo/3u19636b/armeabi-v7a/CMakeFiles/edit_cache.dir
+/home/saidi/Projects/KAO-Mobile-Application-master/android/app/.cxx/RelWithDebInfo/3u19636b/armeabi-v7a/CMakeFiles/rebuild_cache.dir

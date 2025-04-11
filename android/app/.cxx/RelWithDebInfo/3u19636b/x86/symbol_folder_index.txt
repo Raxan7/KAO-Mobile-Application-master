@@ -1,0 +1,1 @@
+/home/saidi/Projects/KAO-Mobile-Application-master/build/app/intermediates/cxx/RelWithDebInfo/3u19636b/obj/x86

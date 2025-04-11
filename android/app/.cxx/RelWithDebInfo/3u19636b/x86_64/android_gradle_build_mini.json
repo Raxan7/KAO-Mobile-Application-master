@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/home/saidi/snap/flutter/common/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/home/saidi/Android/Sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/home/saidi/Projects/KAO-Mobile-Application-master/android/app/.cxx/RelWithDebInfo/3u19636b/x86_64",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/home/saidi/Android/Sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/home/saidi/Projects/KAO-Mobile-Application-master/android/app/.cxx/RelWithDebInfo/3u19636b/x86_64",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}
