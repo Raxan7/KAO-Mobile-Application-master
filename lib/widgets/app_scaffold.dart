@@ -53,6 +53,36 @@ class _AppScaffoldState extends State<AppScaffold> {
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 600;
 
+    if (isDesktop && widget.showDrawer) {
+      return Scaffold(
+        appBar: widget.showAppBar
+            ? AppBar(
+                title: Text(widget.title),
+                centerTitle: true,
+                backgroundColor: Colors.teal,
+              )
+            : null,
+        body: Row(
+          children: [
+            SizedBox(
+              width: 300, // Fixed width for the drawer
+              child: PersistentDrawer(
+                userId: userId,
+                userName: userName,
+                userEmail: userEmail,
+                isLoggedIn: isLoggedIn,
+                onThemeChanged: widget.onThemeChanged,
+              ),
+            ),
+            Expanded(
+              child: widget.child,
+            ),
+          ],
+        ),
+        bottomNavigationBar: null,
+      );
+    }
+
     return Scaffold(
       appBar: widget.showAppBar
           ? AppBar(
@@ -71,7 +101,7 @@ class _AppScaffoldState extends State<AppScaffold> {
             )
           : null,
       body: widget.child,
-      bottomNavigationBar: null, // Hide bottom navigation for now
+      bottomNavigationBar: null,
     );
   }
 } 
