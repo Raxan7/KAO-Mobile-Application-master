@@ -70,102 +70,178 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final padding = isDesktop 
+        ? const EdgeInsets.symmetric(horizontal: 100, vertical: 20)
+        : const EdgeInsets.all(16.0);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
-                validator: (value) => value!.isEmpty ? 'Please enter your name' : null,
-              ),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (value) => value!.isEmpty ? 'Please enter your email' : null,
-              ),
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(labelText: 'Phone Number'),
-                validator: (value) => value!.isEmpty ? 'Please enter your phone number' : null,
-              ),
-              TextFormField(
-                controller: _addressController,
-                decoration: const InputDecoration(labelText: 'Address'),
-                validator: (value) => value!.isEmpty ? 'Please enter your address' : null,
-              ),
-              TextFormField(
-                controller: _pincodeController,
-                decoration: const InputDecoration(labelText: 'Pincode'),
-                validator: (value) => value!.isEmpty ? 'Please enter your pincode' : null,
-              ),
-              TextFormField(
-                controller: _dobController,
-                decoration: const InputDecoration(labelText: 'Date of Birth'),
-                onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(1950),
-                    lastDate: DateTime(2101),
-                  );
-                  _dobController.text = pickedDate.toString().split(' ')[0];
-                                },
-                validator: (value) => value!.isEmpty ? 'Please select your date of birth' : null,
-              ),
-              const SizedBox(height: 20),
-              // Role dropdown
-              DropdownButtonFormField<String>(
-                value: _selectedRole,
-                decoration: const InputDecoration(labelText: 'Select Role'),
-                items: const [
-                  DropdownMenuItem(value: 'user', child: Text('User')),
-                  DropdownMenuItem(value: 'dalali', child: Text('Dalali')),
-                  DropdownMenuItem(value: 'hotelier', child: Text('Hotelier')),
-                  DropdownMenuItem(value: 'worker', child: Text('Worker')),
-                ],
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedRole = newValue!;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: (value) => value!.isEmpty ? 'Please enter a password' : null,
-              ),
-              TextFormField(
-                controller: _cpasswordController,
-                decoration: const InputDecoration(labelText: 'Confirm Password'),
-                obscureText: true,
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Please confirm your password';
-                  }
-                  if (value != _passwordController.text) {
-                    return 'Passwords do not match';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _registerUser,
-                      child: const Text('Register'),
+      appBar: AppBar(
+        title: const Text('Register'),
+        centerTitle: isDesktop,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isDesktop ? 600 : double.infinity,
+            ),
+            child: Padding(
+              padding: padding,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTextField(
+                      controller: _nameController,
+                      label: 'Name',
+                      validator: (value) => value!.isEmpty ? 'Please enter your name' : null,
+                      isDesktop: isDesktop,
                     ),
-            ],
+                    _buildTextField(
+                      controller: _emailController,
+                      label: 'Email',
+                      validator: (value) => value!.isEmpty ? 'Please enter your email' : null,
+                      isDesktop: isDesktop,
+                    ),
+                    _buildTextField(
+                      controller: _phoneController,
+                      label: 'Phone Number',
+                      validator: (value) => value!.isEmpty ? 'Please enter your phone number' : null,
+                      isDesktop: isDesktop,
+                    ),
+                    _buildTextField(
+                      controller: _addressController,
+                      label: 'Address',
+                      validator: (value) => value!.isEmpty ? 'Please enter your address' : null,
+                      isDesktop: isDesktop,
+                    ),
+                    _buildTextField(
+                      controller: _pincodeController,
+                      label: 'Pincode',
+                      validator: (value) => value!.isEmpty ? 'Please enter your pincode' : null,
+                      isDesktop: isDesktop,
+                    ),
+                    _buildDateField(isDesktop),
+                    const SizedBox(height: 20),
+                    _buildRoleDropdown(isDesktop),
+                    const SizedBox(height: 20),
+                    _buildTextField(
+                      controller: _passwordController,
+                      label: 'Password',
+                      obscureText: true,
+                      validator: (value) => value!.isEmpty ? 'Please enter a password' : null,
+                      isDesktop: isDesktop,
+                    ),
+                    _buildTextField(
+                      controller: _cpasswordController,
+                      label: 'Confirm Password',
+                      obscureText: true,
+                      validator: (value) {
+                        if (value!.isEmpty) return 'Please confirm your password';
+                        if (value != _passwordController.text) return 'Passwords do not match';
+                        return null;
+                      },
+                      isDesktop: isDesktop,
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : ElevatedButton(
+                              onPressed: _registerUser,
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: isDesktop ? 16 : 12,
+                                ),
+                              ),
+                              child: Text(
+                                'Register',
+                                style: TextStyle(
+                                  fontSize: isDesktop ? 18 : 16,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String? Function(String?)? validator,
+    bool obscureText = false,
+    required bool isDesktop,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(fontSize: isDesktop ? 16 : 14),
+        ),
+        style: TextStyle(fontSize: isDesktop ? 16 : 14),
+        validator: validator,
+        obscureText: obscureText,
+      ),
+    );
+  }
+
+  Widget _buildDateField(bool isDesktop) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: TextFormField(
+        controller: _dobController,
+        decoration: InputDecoration(
+          labelText: 'Date of Birth',
+          labelStyle: TextStyle(fontSize: isDesktop ? 16 : 14),
+        ),
+        style: TextStyle(fontSize: isDesktop ? 16 : 14),
+        onTap: () async {
+          DateTime? pickedDate = await showDatePicker(
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime(1950),
+            lastDate: DateTime(2101),
+          );
+          if (pickedDate != null) {
+            _dobController.text = pickedDate.toString().split(' ')[0];
+          }
+        },
+        validator: (value) => value!.isEmpty ? 'Please select your date of birth' : null,
+      ),
+    );
+  }
+
+  Widget _buildRoleDropdown(bool isDesktop) {
+    return DropdownButtonFormField<String>(
+      value: _selectedRole,
+      decoration: InputDecoration(
+        labelText: 'Select Role',
+        labelStyle: TextStyle(fontSize: isDesktop ? 16 : 14),
+      ),
+      style: TextStyle(fontSize: isDesktop ? 16 : 14),
+      items: const [
+        DropdownMenuItem(value: 'user', child: Text('User')),
+        DropdownMenuItem(value: 'dalali', child: Text('Dalali')),
+        DropdownMenuItem(value: 'hotelier', child: Text('Hotelier')),
+        DropdownMenuItem(value: 'worker', child: Text('Worker')),
+      ],
+      onChanged: (String? newValue) {
+        setState(() {
+          _selectedRole = newValue!;
+        });
+      },
     );
   }
 }

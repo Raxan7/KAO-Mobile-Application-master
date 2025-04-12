@@ -66,167 +66,203 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final headerHeight = isDesktop ? 200.0 : 150.0;
+    final avatarSize = isDesktop ? 80.0 : 60.0;
+    final nameFontSize = isDesktop ? 24.0 : 20.0;
+    final emailFontSize = isDesktop ? 18.0 : 16.0;
+    final iconSize = isDesktop ? 28.0 : 24.0;
+    final listTilePadding = isDesktop 
+        ? const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0)
+        : const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0);
+    final titleFontSize = isDesktop ? 18.0 : 16.0;
+
     return Drawer(
+      width: isDesktop ? 300 : null,
       child: ListView(
         padding: EdgeInsets.zero,
         children: <Widget>[
           UserAccountsDrawerHeader(
             accountName: widget.isLoggedIn
-                ? Text(widget.userName ?? 'Anonymous')
-                : const Text('Log in to your account', style: TextStyle(color: Colors.white)), // Prompt user to log in
-            accountEmail: widget.isLoggedIn
-                ? Text(widget.userEmail ?? 'anonymous user')
-                : const Text(''), // Empty email when not logged in
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: _isDarkMode ? Colors.purple : Colors.white, // Use the retrieved theme preference
-              child: Text(widget.isLoggedIn && widget.userName != null && widget.userName!.isNotEmpty
-                        ? widget.userName![0] 
-                        : 'A', // Default initial
-                        style: const TextStyle(fontSize: 40.0),
+                ? Text(
+                    widget.userName ?? 'Anonymous',
+                    style: TextStyle(
+                      fontSize: nameFontSize,
+                      fontWeight: FontWeight.bold,
                     ),
+                  )
+                : Text(
+                    'Log in to your account',
+                    style: TextStyle(
+                      fontSize: nameFontSize,
+                      color: Colors.white,
+                    ),
+                  ),
+            accountEmail: widget.isLoggedIn
+                ? Text(
+                    widget.userEmail ?? 'anonymous user',
+                    style: TextStyle(fontSize: emailFontSize),
+                  )
+                : const Text(''),
+            currentAccountPicture: CircleAvatar(
+              radius: avatarSize / 2,
+              backgroundColor: _isDarkMode ? Colors.purple : Colors.white,
+              child: Text(
+                widget.isLoggedIn && widget.userName != null && widget.userName!.isNotEmpty
+                    ? widget.userName![0]
+                    : 'A',
+                style: TextStyle(fontSize: avatarSize * 0.5),
+              ),
             ),
             decoration: BoxDecoration(
-              color: _isDarkMode ? const Color(0xFF1A237E) : Colors.blue, // Set background based on theme
+              color: _isDarkMode ? const Color(0xFF1A237E) : Colors.blue,
             ),
+            margin: EdgeInsets.zero,
           ),
-          if (!widget.isLoggedIn) // Show login button only if not logged in
+          if (!widget.isLoggedIn)
             ListTile(
-              leading: const Icon(Icons.login),
-              title: const Text('Login'),
-              onTap: () {
-                _navigateTo(context, const LoginPage()); // Close drawer and navigate to login
-              },
+              leading: Icon(Icons.login, size: iconSize),
+              title: Text('Login', style: TextStyle(fontSize: titleFontSize)),
+              onTap: () => _navigateTo(context, const LoginPage()),
             ),
           if (widget.isLoggedIn) ...[
             ListTile(
-              leading: const Icon(Icons.apartment),
-              title: const Text('Properties'),
-              onTap: () {
-                _navigateTo(context, 
+              leading: Icon(Icons.apartment, size: iconSize),
+              title: Text('Properties', style: TextStyle(fontSize: titleFontSize)),
+              contentPadding: listTilePadding,
+              onTap: () => _navigateTo(
+                context,
                 PropertyListScreen(
                   userId: widget.userId,
                   userName: widget.userName,
                   userEmail: widget.userEmail,
                   isLoggedIn: widget.isLoggedIn,
                   onThemeChanged: widget.onThemeChanged,
-                ));
-              },
+                ),
+              ),
             ),
             ListTile(
-              leading: const Icon(Icons.message_rounded),
-              title: const Text('My Enquiries'),
+              leading: Icon(Icons.message_rounded, size: iconSize),
+              title: Text('My Enquiries', style: TextStyle(fontSize: titleFontSize)),
+              contentPadding: listTilePadding,
               onTap: () {
                 final userId = int.parse(widget.userId ?? '0');
-                _navigateTo(context, DetailedEnquiriesPage(userId: userId,));
+                _navigateTo(context, DetailedEnquiriesPage(userId: userId));
               },
             ),
             ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profile'),
-              onTap: () {
-                _navigateTo(context, const UserProfile()); // Close drawer and navigate to profile
-              },
+              leading: Icon(Icons.person, size: iconSize),
+              title: Text('Profile', style: TextStyle(fontSize: titleFontSize)),
+              contentPadding: listTilePadding,
+              onTap: () => _navigateTo(context, const UserProfile()),
             ),
             ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                _navigateTo(context, SettingsPage(onThemeChanged: widget.onThemeChanged, isDarkMode: _isDarkMode)); // Close drawer and navigate to settings
-              },
+              leading: Icon(Icons.settings, size: iconSize),
+              title: Text('Settings', style: TextStyle(fontSize: titleFontSize)),
+              contentPadding: listTilePadding,
+              onTap: () => _navigateTo(
+                context,
+                SettingsPage(
+                  onThemeChanged: widget.onThemeChanged,
+                  isDarkMode: _isDarkMode,
+                ),
+              ),
             ),
             ListTile(
-              leading: const Icon(Icons.bookmark),
-              title: const Text('Bookmarks'),
-              onTap: () {
-                _navigateTo(context, 
+              leading: Icon(Icons.bookmark, size: iconSize),
+              title: Text('Bookmarks', style: TextStyle(fontSize: titleFontSize)),
+              contentPadding: listTilePadding,
+              onTap: () => _navigateTo(
+                context,
                 BookmarkedPropertyList(
                   userId: widget.userId,
                   userName: widget.userName,
                   userEmail: widget.userEmail,
                   isLoggedIn: widget.isLoggedIn,
                   onThemeChanged: widget.onThemeChanged,
-                ));
-              },
+                ),
+              ),
             ),
             ListTile(
-              leading: const Icon(Icons.business_center),
-              title: const Text('Professional Page'),
-              onTap: () {
-                _navigateTo(context, const ProfessionalPage());
-              },
+              leading: Icon(Icons.business_center, size: iconSize),
+              title: Text('Professional Page', style: TextStyle(fontSize: titleFontSize)),
+              contentPadding: listTilePadding,
+              onTap: () => _navigateTo(context, const ProfessionalPage()),
             ),
             const Divider(),
             if (_savedSessions.isNotEmpty) ...[
-              const Padding(
-                padding: EdgeInsets.all(16.0),
+              Padding(
+                padding: EdgeInsets.all(isDesktop ? 20.0 : 16.0),
                 child: Text(
                   'Saved Accounts',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Colors.blueAccent, // Added color for better visual appeal
+                    fontSize: isDesktop ? 20.0 : 18.0,
+                    color: Colors.blueAccent,
                   ),
                 ),
               ),
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 4.0),
+                margin: EdgeInsets.symmetric(horizontal: isDesktop ? 8.0 : 4.0),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isDesktop ? 4.0 : 2.0,
+                  vertical: isDesktop ? 8.0 : 4.0,
+                ),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade400),
                   borderRadius: BorderRadius.circular(8.0),
-                  color: Colors.white, // Background color for dropdown container
+                  color: Colors.white,
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<Map<String, dynamic>>(
-                    hint: const Text(
+                    hint: Text(
                       "Select Account",
                       style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87, // Styling for hint text
+                        fontSize: isDesktop ? 18.0 : 16.0,
+                        color: Colors.black87,
                       ),
                     ),
-                    value: null, // No initial value, user must select
+                    value: null,
                     items: [
                       ..._savedSessions.map((session) {
                         return DropdownMenuItem<Map<String, dynamic>>(
                           value: session,
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.account_circle,
-                                color: Colors.blueAccent, // Color for icon
-                                size: 20, // Increased size for better visibility
+                                color: Colors.blueAccent,
+                                size: isDesktop ? 24.0 : 20.0,
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: isDesktop ? 16.0 : 12.0),
                               Text(
                                 session['name'] ?? 'Unknown User',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500, // Slightly bolder text
+                                style: TextStyle(
+                                  fontSize: isDesktop ? 18.0 : 16.0,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: isDesktop ? 16.0 : 12.0),
                               Text(
                                 session['email'] ?? 'Unknown Email',
                                 style: TextStyle(
                                   color: Colors.grey.shade600,
-                                  fontSize: 14,
-                                  fontStyle: FontStyle.italic, // Italic style for distinction
+                                  fontSize: isDesktop ? 16.0 : 14.0,
+                                  fontStyle: FontStyle.italic,
                                 ),
                               ),
                             ],
                           ),
                         );
                       }),
-                      // Add new account button
                       const DropdownMenuItem<Map<String, dynamic>>(
-                        value: null, // Special value for this option
+                        value: null,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.add_circle,
-                              color: Colors.green, // Icon for add new account
+                              color: Colors.green,
                               size: 30,
                             ),
                             SizedBox(width: 8),
@@ -244,43 +280,30 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
                     ],
                     onChanged: (session) async {
                       if (session == null) {
-                        // Handle Add New Account action: Log out and navigate to the login screen
-                        await AuthService.logout(context); // Log out the current user
-                        Navigator.pushReplacementNamed(context, '/login'); // Navigate to the login screen
+                        await AuthService.logout(context);
+                        Navigator.pushReplacementNamed(context, '/login');
                         return;
                       }
-
-                      // Handle switching to the selected account
-                      await UserPreferences().switchToSession(session);
-
-                      // Redirect based on role
-                      String role = session['role'];
-                      if (role == 'admin') {
-                        Navigator.pushReplacementNamed(context, '/adminDashboard');
-                      } else if (role == 'hotelier') {
-                        Navigator.pushReplacementNamed(context, '/hotelierDashboard');
-                      } else if (role == 'worker') {
-                        Navigator.pushReplacementNamed(context, '/workerDashboard');
-                      } else if (role == 'dalali') {
-                        Navigator.pushReplacementNamed(context, '/dalaliDashboard');
-                      } else if (role == 'user') {
-                        Navigator.pushReplacementNamed(context, '/home');
-                      }
+                      // Handle account switching by saving the new session
+                      await UserPreferences().saveUserDetails(
+                        token: session['token'] ?? '',
+                        name: session['name'] ?? '',
+                        email: session['email'] ?? '',
+                        role: session['role'] ?? 'user',
+                        userId: session['userId']?.toString() ?? '',
+                        phonenum: session['phonenum'] ?? '',
+                        address: session['address'] ?? '',
+                      );
+                      Navigator.pushReplacementNamed(context, '/propertyListScreen');
                     },
-                    dropdownColor: Colors.white, // Dropdown background color
-                    icon: const Icon(
-                      Icons.arrow_drop_down,
-                      color: Colors.blueAccent, // Color of dropdown arrow
-                      size: 24,
-                    ),
                   ),
                 ),
               ),
             ],
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
+              leading: Icon(Icons.logout, size: iconSize),
+              title: Text('Logout', style: TextStyle(fontSize: titleFontSize)),
               onTap: () async {
                 await AuthService.logout(context);
               },

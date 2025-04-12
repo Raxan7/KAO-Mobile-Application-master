@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kao_app/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'messaging_page.dart';
-import 'package:intl/intl.dart'; // To format price with commas
+import 'package:intl/intl.dart';
 
 class PropertyDetail extends StatefulWidget {
   final int propertyId;
@@ -32,7 +32,11 @@ class _PropertyDetailState extends State<PropertyDetail> {
 
   @override
   Widget build(BuildContext context) {
-    print(userId);
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final padding = isDesktop 
+        ? const EdgeInsets.symmetric(horizontal: 100, vertical: 20)
+        : const EdgeInsets.all(16.0);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Property Detail'),
@@ -52,10 +56,8 @@ class _PropertyDetailState extends State<PropertyDetail> {
             final property = snapshot.data!;
             final imageUrl = (property['property_image'][0]).toString();
             final title = property['title'] ?? 'No Title Available';
-            final description =
-                property['description'] ?? 'No Description Available';
-            final price =
-                double.tryParse(property['price']?.toString() ?? '0.0') ?? 0.0;
+            final description = property['description'] ?? 'No Description Available';
+            final price = double.tryParse(property['price']?.toString() ?? '0.0') ?? 0.0;
             final formattedPrice = NumberFormat('#,###').format(price);
             final status = property['status'] ?? 'N/A';
             final location = property['location'] ?? 'No Location Specified';
@@ -63,43 +65,47 @@ class _PropertyDetailState extends State<PropertyDetail> {
 
             return SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: padding,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Image Section
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12.0),
-                      child: Image.network(
-                        imageUrl,
-                        height: 250,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Image.asset('assets/placeholder.png',
-                                height: 250,
-                                width: double.infinity,
-                                fit: BoxFit.cover),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: isDesktop ? 800 : double.infinity,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12.0),
+                          child: Image.network(
+                            imageUrl,
+                            height: isDesktop ? 350 : 250,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Image.asset('assets/placeholder.png',
+                                    height: isDesktop ? 350 : 250,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
 
-                    // Title
+                    // Title and Price
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 28,
+                      style: TextStyle(
+                        fontSize: isDesktop ? 32 : 28,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 10),
-
-                    // Price
                     Text(
                       'Price: Tsh $formattedPrice',
-                      style: const TextStyle(
-                        fontSize: 22,
+                      style: TextStyle(
+                        fontSize: isDesktop ? 26 : 22,
                         fontWeight: FontWeight.w600,
                         color: Colors.teal,
                       ),
@@ -107,123 +113,27 @@ class _PropertyDetailState extends State<PropertyDetail> {
                     const SizedBox(height: 20),
 
                     // Property Details
-                    const Text(
-                      'Property Details',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text('Status: $status'),
-                    const SizedBox(height: 8),
-                    Text('Location: $location'),
+                    _buildSectionHeader('Property Details', isDesktop),
+                    _buildDetailRow('Status:', status, isDesktop),
+                    _buildDetailRow('Location:', location, isDesktop),
                     const SizedBox(height: 20),
 
                     // Features
-                    const Text(
-                      'Description & Features',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(description),
-                    const SizedBox(height: 20),
-
-                    // Custom Message Input with Send Icon
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _messageController,
-                            decoration: const InputDecoration(
-                              labelText: 'Write your message...',
-                              border: OutlineInputBorder(),
-                            ),
-                            maxLines: 3,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: () {
-                            if (_messageController.text.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please write a message'),
-                                ),
-                              );
-                              return;
-                            }
-
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MessagingPage(
-                                  propertyId: widget.propertyId,
-                                  dalaliId: dalaliId,
-                                  propertyName: title,
-                                  propertyImage: imageUrl,
-                                  initialMessage: _messageController.text,
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.send),
-                          color: Colors.teal,
-                          iconSize: 28,
-                        ),
-                      ],
+                    _buildSectionHeader('Description & Features', isDesktop),
+                    Text(
+                      description,
+                      style: TextStyle(fontSize: isDesktop ? 18 : 16),
                     ),
                     const SizedBox(height: 20),
 
-                    // Buttons
+                    // Message Input
+                    _buildMessageInput(context, isDesktop, widget.propertyId, 
+                        dalaliId, title, imageUrl),
+                    const SizedBox(height: 20),
+
+                    // Request Button
                     Center(
-                      child: Column(
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () async {
-                              if (userId == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('User not logged in'),
-                                  ),
-                                );
-                                return;
-                              }
-                              final response =
-                                  await ApiService.createNotification(
-                                int.tryParse(userId!)!,
-                                dalaliId,
-                                widget.propertyId,
-                              );
-                              if (response['status'] == 'success') {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(response['message'])),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content:
-                                        Text('Error: ${response['message']}'),
-                                  ),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.apartment),
-                            label: const Text('Request Property'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  const Color.fromARGB(255, 76, 175, 80),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 30, vertical: 12),
-                              textStyle: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: _buildRequestButton(context, isDesktop, userId, dalaliId),
                     ),
                   ],
                 ),
@@ -231,6 +141,132 @@ class _PropertyDetailState extends State<PropertyDetail> {
             );
           }
         },
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String text, bool isDesktop) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: isDesktop ? 24 : 20,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, bool isDesktop) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: isDesktop ? 18 : 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(fontSize: isDesktop ? 18 : 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageInput(BuildContext context, bool isDesktop, 
+      int propertyId, int dalaliId, String title, String imageUrl) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _messageController,
+            decoration: InputDecoration(
+              labelText: 'Write your message...',
+              border: const OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: isDesktop ? 20 : 16,
+              ),
+            ),
+            maxLines: 3,
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: Icon(Icons.send, size: isDesktop ? 32 : 28),
+          color: Colors.teal,
+          onPressed: () {
+            if (_messageController.text.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please write a message')),
+              );
+              return;
+            }
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MessagingPage(
+                  propertyId: propertyId,
+                  dalaliId: dalaliId,
+                  propertyName: title,
+                  propertyImage: imageUrl,
+                  initialMessage: _messageController.text,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRequestButton(BuildContext context, bool isDesktop, 
+      String? userId, int dalaliId) {
+    return SizedBox(
+      width: isDesktop ? 400 : double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          if (userId == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('User not logged in')),
+            );
+            return;
+          }
+          final response = await ApiService.createNotification(
+            int.tryParse(userId!)!,
+            dalaliId,
+            widget.propertyId,
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(
+              response['status'] == 'success' 
+                ? response['message']
+                : 'Error: ${response['message']}'
+            )),
+          );
+        },
+        icon: const Icon(Icons.apartment),
+        label: Padding(
+          padding: EdgeInsets.symmetric(
+            vertical: isDesktop ? 16 : 12,
+          ),
+          child: const Text('Request Property'),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 76, 175, 80),
+          textStyle: TextStyle(
+            fontSize: isDesktop ? 20 : 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

@@ -6,10 +6,14 @@ import '../views/user/settings_page.dart';
 import '../views/user/user_profile.dart';
 
 class BottomNavigation extends StatefulWidget {
-  final Function(bool) onThemeChanged; // Callback to toggle theme
-  final bool isDarkMode; // Current theme state
+  final Function(bool) onThemeChanged;
+  final bool isDarkMode;
 
-  const BottomNavigation({super.key, required this.onThemeChanged, required this.isDarkMode}); // Pass the callback and current theme state
+  const BottomNavigation({
+    super.key,
+    required this.onThemeChanged,
+    required this.isDarkMode,
+  });
 
   @override
   _BottomNavigationState createState() => _BottomNavigationState();
@@ -19,26 +23,26 @@ class _BottomNavigationState extends State<BottomNavigation> {
   int _selectedIndex = 0;
 
   final List<String> _titles = [
-    'Explore Hotels',   // Title for Home Page
-    'Your Bookings',    // Title for Bookings Page
-    'Search Hotels',    // Title for Search Page
+    'Explore Hotels',
+    'Your Bookings',
+    'Search Hotels',
   ];
 
-  late List<Widget> _pages; // Initialize empty pages list
+  late List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
     _pages = [
-      HomePage(isDarkMode: widget.isDarkMode, onThemeChanged: widget.onThemeChanged), // Home Page
-      BookingsPage(isDarkMode: widget.isDarkMode, onThemeChanged: widget.onThemeChanged), // Bookings Page
-      SearchPage(isDarkMode: widget.isDarkMode, onThemeChanged: widget.onThemeChanged), // Search Page
+      HomePage(isDarkMode: widget.isDarkMode, onThemeChanged: widget.onThemeChanged),
+      BookingsPage(isDarkMode: widget.isDarkMode, onThemeChanged: widget.onThemeChanged),
+      SearchPage(isDarkMode: widget.isDarkMode, onThemeChanged: widget.onThemeChanged),
     ];
   }
 
   void _onItemTapped(int index) {
     setState(() {
-      _selectedIndex = index; // Update the selected index for bottom navigation
+      _selectedIndex = index;
     });
   }
 
@@ -51,94 +55,93 @@ class _BottomNavigationState extends State<BottomNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final iconSize = isDesktop ? 28.0 : 24.0;
+    final titleFontSize = isDesktop ? 24.0 : 20.0;
+    final labelFontSize = isDesktop ? 16.0 : 14.0;
+    final drawerWidth = isDesktop ? 300.0 : null;
+    final avatarSize = isDesktop ? 80.0 : 60.0;
+    final listTilePadding = isDesktop 
+        ? const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0)
+        : const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_titles[_selectedIndex]),  // Change title dynamically based on the selected tab
+        title: Text(
+          _titles[_selectedIndex],
+          style: TextStyle(fontSize: titleFontSize),
+        ),
+        centerTitle: isDesktop,
       ),
       drawer: Drawer(
+        width: drawerWidth,
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
             UserAccountsDrawerHeader(
               accountName: Text(
                 "User Name",
-                style: TextStyle(color: widget.isDarkMode ? Colors.white : Colors.black), // Text color based on theme
+                style: TextStyle(
+                  color: widget.isDarkMode ? Colors.white : Colors.black,
+                  fontSize: isDesktop ? 24.0 : 20.0,
+                ),
               ),
               accountEmail: Text(
                 "user@example.com",
-                style: TextStyle(color: widget.isDarkMode ? Colors.white70 : Colors.black54), // Text color based on theme
+                style: TextStyle(
+                  color: widget.isDarkMode ? Colors.white70 : Colors.black54,
+                  fontSize: isDesktop ? 18.0 : 16.0,
+                ),
               ),
-              currentAccountPicture: const CircleAvatar(
+              currentAccountPicture: CircleAvatar(
+                radius: avatarSize / 2,
                 backgroundColor: Colors.white,
-                child: Text("U", style: TextStyle(fontSize: 40.0)),
+                child: Text(
+                  "U",
+                  style: TextStyle(fontSize: avatarSize * 0.5),
+                ),
               ),
               decoration: BoxDecoration(
-                color: widget.isDarkMode ? const Color(0xFF1A237E) : Colors.blue, // Dark blue for dark mode, blue for light mode
+                color: widget.isDarkMode ? const Color(0xFF1A237E) : Colors.blue,
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profile'),
-              onTap: () {
-                _navigateTo(const UserProfile());
-              },
+              leading: Icon(Icons.person, size: iconSize),
+              title: Text(
+                'Profile',
+                style: TextStyle(fontSize: labelFontSize),
+              ),
+              contentPadding: listTilePadding,
+              onTap: () => _navigateTo(const UserProfile()),
             ),
             ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                _navigateTo(SettingsPage(onThemeChanged: widget.onThemeChanged, isDarkMode: widget.isDarkMode)); // Pass the current theme state
-              },
+              leading: Icon(Icons.settings, size: iconSize),
+              title: Text(
+                'Settings',
+                style: TextStyle(fontSize: labelFontSize),
+              ),
+              contentPadding: listTilePadding,
+              onTap: () => _navigateTo(
+                SettingsPage(
+                  onThemeChanged: widget.onThemeChanged,
+                  isDarkMode: widget.isDarkMode,
+                ),
+              ),
             ),
             ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () {
-                Navigator.pop(context); // Close the drawer
-              },
+              leading: Icon(Icons.logout, size: iconSize),
+              title: Text(
+                'Logout',
+                style: TextStyle(fontSize: labelFontSize),
+              ),
+              contentPadding: listTilePadding,
+              onTap: () => Navigator.pop(context),
             ),
           ],
         ),
       ),
-      body: _pages[_selectedIndex], // Display selected page from bottom navigation
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: widget.isDarkMode ? const Color(0xFF0D47A1) : Colors.blueAccent, // Change background color for light and dark mode
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              spreadRadius: 5,
-              blurRadius: 10,
-            ),
-          ],
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: Colors.transparent, // Background is handled by the Container
-          elevation: 20, // Higher elevation for prominence
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore),
-              label: 'Explore',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.book),
-              label: 'Bookings',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search),
-              label: 'Search',
-            ),
-          ],
-          currentIndex: _selectedIndex,
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white70,
-          onTap: _onItemTapped, // Change tab on tap
-        ),
-      ),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: null, // Hide bottom navigation for now
     );
   }
 }

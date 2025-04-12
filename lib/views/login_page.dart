@@ -30,117 +30,131 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final padding = isDesktop 
+        ? const EdgeInsets.symmetric(horizontal: 100, vertical: 20)
+        : const EdgeInsets.all(16.0);
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Login'),
+        centerTitle: isDesktop,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 50),
-            Center(
-              child: Image.asset(
-                'assets/images/splash_icon.png',
-                width: 100,
-                height: 100,
-              ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isDesktop ? 600 : double.infinity,
             ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Login with email',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).disabledColor,
-                ),
-              ),
-            ),
-            CommonTextFieldView(
-              controller: _emailController,
-              errorText: _errorEmail,
-              titleText: 'Your Email',
-              hintText: 'Enter your email',
-              keyboardType: TextInputType.emailAddress,
-              onChanged: (String txt) {
-                setState(() {
-                  _errorEmail = null;
-                });
-              },
-            ),
-            CommonTextFieldView(
-              controller: _passwordController,
-              errorText: _errorPassword,
-              titleText: 'Password',
-              hintText: 'Enter your password',
-              isObscureText: true,
-              onChanged: (String txt) {
-                setState(() {
-                  _errorPassword = null;
-                });
-              },
-            ),
-            _forgotPasswordUI(),
-            CommonButton(
-              buttonText: 'Login',
-              onTap: () async {
-                if (_validateInputs()) {
-                  try {
-                    final response = await apiService.loginUser(
-                      _emailController.text.trim(),
-                      _passwordController.text.trim(),
-                    );
+            child: Padding(
+              padding: padding,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!isDesktop) const SizedBox(height: 50),
+                  Center(
+                    child: Image.asset(
+                      'assets/images/splash_icon.png',
+                      width: isDesktop ? 150 : 100,
+                      height: isDesktop ? 150 : 100,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Login with email',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: isDesktop ? 20 : 16,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).disabledColor,
+                      ),
+                    ),
+                  ),
+                  CommonTextFieldView(
+                    controller: _emailController,
+                    errorText: _errorEmail,
+                    titleText: 'Your Email',
+                    hintText: 'Enter your email',
+                    keyboardType: TextInputType.emailAddress,
+                    isDesktop: isDesktop,
+                    onChanged: (String txt) {
+                      setState(() => _errorEmail = null);
+                    },
+                  ),
+                  CommonTextFieldView(
+                    controller: _passwordController,
+                    errorText: _errorPassword,
+                    titleText: 'Password',
+                    hintText: 'Enter your password',
+                    isObscureText: true,
+                    isDesktop: isDesktop,
+                    onChanged: (String txt) {
+                      setState(() => _errorPassword = null);
+                    },
+                  ),
+                  _forgotPasswordUI(isDesktop),
+                  CommonButton(
+                    buttonText: 'Login',
+                    isDesktop: isDesktop,
+                    onTap: () async {
+                      if (_validateInputs()) {
+                        try {
+                          final response = await apiService.loginUser(
+                            _emailController.text.trim(),
+                            _passwordController.text.trim(),
+                          );
 
-                    if (response['success']) {
-                      await _handleLoginSuccess(response);
-                    } else {
-                      setState(() {
-                        _errorPassword = response['message'];
-                      });
-                    }
-                  } catch (e) {
-                    // print('Login failed: $e');
-                    setState(() {
-                      _errorPassword = 'An error occurred. Please try again.';
-                    });
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            // _buildGoogleSignInButton(),
-            const SizedBox(height: 16),
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const RegisterPage()),
-                  );
-                },
-                child: const Text(
-                  'Don\'t have an account? Register here',
-                  style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
-                ),
+                          if (response['success']) {
+                            await _handleLoginSuccess(response);
+                          } else {
+                            setState(() {
+                              _errorPassword = response['message'];
+                            });
+                          }
+                        } catch (e) {
+                          setState(() {
+                            _errorPassword = 'An error occurred. Please try again.';
+                          });
+                        }
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const RegisterPage()),
+                        );
+                      },
+                      child: Text(
+                        'Don\'t have an account? Register here',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: isDesktop ? 16 : 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _forgotPasswordUI() {
+  Widget _forgotPasswordUI(bool isDesktop) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
       child: Align(
@@ -154,21 +168,13 @@ class _LoginPageState extends State<LoginPage> {
             style: TextStyle(
               color: Theme.of(context).primaryColor,
               fontWeight: FontWeight.w500,
+              fontSize: isDesktop ? 16 : 14,
             ),
           ),
         ),
       ),
     );
   }
-
-  // Widget _buildGoogleSignInButton() {
-  //   return Center(
-  //     child: CommonButton(
-  //       buttonText: 'Sign in with Google',
-  //       onTap: _handleGoogleSignIn,
-  //     ),
-  //   );
-  // }
 
   Future<void> _handleGoogleSignIn() async {
     try {

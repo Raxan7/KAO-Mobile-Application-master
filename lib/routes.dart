@@ -7,6 +7,10 @@ import 'views/dalali/add_property_page.dart';
 import 'views/dalali/property_list_page.dart';
 import 'views/login_page.dart';
 import 'views/user/home_page.dart';
+import 'views/user/education_page.dart';
+import 'views/user/development_page.dart';
+import 'views/user/agriculture_page.dart';
+import 'widgets/app_scaffold.dart';
 
 // Helper function to retrieve user details from SharedPreferences
 Future<Map<String, String?>> getUserDetails() async {
@@ -30,15 +34,50 @@ class AppRoutes {
   static const String propertyManagement = '/propertyManagement';
   static const String userPropertyListScreen = '/propertyListScreen';
   static const String dalaliProfileInUser = '/dalaliProfileInUser';
+  static const String education = '/education';
+  static const String development = '/development';
+  static const String agriculture = '/agriculture';
 
   static Map<String, WidgetBuilder> getRoutes(
       bool isDarkMode, Function(bool) onThemeChanged) {
     return {
-      home: (context) => HomePage(
+      home: (context) => AppScaffold(
+            title: 'Home',
             onThemeChanged: onThemeChanged,
             isDarkMode: isDarkMode,
+            child: HomePage(
+              onThemeChanged: onThemeChanged,
+              isDarkMode: isDarkMode,
+            ),
           ),
       login: (context) => const LoginPage(),
+      education: (context) => AppScaffold(
+            title: 'Education',
+            onThemeChanged: onThemeChanged,
+            isDarkMode: isDarkMode,
+            child: EducationPage(
+              onThemeChanged: onThemeChanged,
+              isDarkMode: isDarkMode,
+            ),
+          ),
+      development: (context) => AppScaffold(
+            title: 'Development',
+            onThemeChanged: onThemeChanged,
+            isDarkMode: isDarkMode,
+            child: DevelopmentPage(
+              onThemeChanged: onThemeChanged,
+              isDarkMode: isDarkMode,
+            ),
+          ),
+      agriculture: (context) => AppScaffold(
+            title: 'Agriculture',
+            onThemeChanged: onThemeChanged,
+            isDarkMode: isDarkMode,
+            child: AgriculturePage(
+              onThemeChanged: onThemeChanged,
+              isDarkMode: isDarkMode,
+            ),
+          ),
       dalaliDashboard: (context) => FutureBuilder<Map<String, String?>>(
             future: getUserDetails(),
             builder: (context, snapshot) {
@@ -49,8 +88,13 @@ class AppRoutes {
               } else {
                 final userDetails = snapshot.data!;
                 final userId = int.tryParse(userDetails['userId'] ?? '0') ?? 0;
-                return DalaliDashboard(
-                  userId: userId,
+                return AppScaffold(
+                  title: 'Dalali Dashboard',
+                  onThemeChanged: onThemeChanged,
+                  isDarkMode: isDarkMode,
+                  child: DalaliDashboard(
+                    userId: userId,
+                  ),
                 );
               }
             },
@@ -65,14 +109,29 @@ class AppRoutes {
               } else {
                 final userDetails = snapshot.data!;
                 final userId = int.tryParse(userDetails['userId'] ?? '0') ?? 0;
-                return PropertyListPage(
-                  userId: userId,
+                return AppScaffold(
+                  title: 'Property List',
+                  onThemeChanged: onThemeChanged,
+                  isDarkMode: isDarkMode,
+                  child: PropertyListPage(
+                    userId: userId,
+                  ),
                 );
               }
             },
           ),
-      addProperty: (context) => const AddPropertyPage(),
-      propertyManagement: (context) => const PropertyManagementPage(),
+      addProperty: (context) => AppScaffold(
+            title: 'Add Property',
+            onThemeChanged: onThemeChanged,
+            isDarkMode: isDarkMode,
+            child: const AddPropertyPage(),
+          ),
+      propertyManagement: (context) => AppScaffold(
+            title: 'Property Management',
+            onThemeChanged: onThemeChanged,
+            isDarkMode: isDarkMode,
+            child: const PropertyManagementPage(),
+          ),
       userPropertyListScreen: (context) => FutureBuilder<Map<String, String?>>(
             future: getUserDetails(),
             builder: (context, snapshot) {
@@ -82,12 +141,18 @@ class AppRoutes {
                 return const Center(child: Text('Error loading user details'));
               } else {
                 final userDetails = snapshot.data!;
-                return PropertyListScreen(
-                  userId: userDetails['userId'],
-                  userName: userDetails['userName'],
-                  userEmail: userDetails['userEmail'],
-                  isLoggedIn: true,
+                return AppScaffold(
+                  title: 'Properties',
+                  showAppBar: false,
                   onThemeChanged: onThemeChanged,
+                  isDarkMode: isDarkMode,
+                  child: PropertyListScreen(
+                    userId: userDetails['userId'],
+                    userName: userDetails['userName'],
+                    userEmail: userDetails['userEmail'],
+                    isLoggedIn: true,
+                    onThemeChanged: onThemeChanged,
+                  ),
                 );
               }
             },
