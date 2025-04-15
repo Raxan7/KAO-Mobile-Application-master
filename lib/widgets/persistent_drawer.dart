@@ -9,6 +9,8 @@ import '../views/login_page.dart';
 import '../views/user/user_profile.dart';  // Import User Profile Page
 import '../views/user/settings_page.dart'; // Import Settings Page
 import '../views/user/professional_page.dart';
+import '../views/user/add_space_page.dart'; // Import the AddSpacePage
+import '../views/user/spaces_list_page.dart'; // Import SpacesListPage
 
 class PersistentDrawer extends StatefulWidget {
   final String? userId;
@@ -141,6 +143,13 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
                 ),
               ),
             ),
+            // Add the new "Add Space" option here
+            ListTile(
+              leading: Icon(Icons.add_circle_outline, size: iconSize),
+              title: Text('Add Space', style: TextStyle(fontSize: titleFontSize)),
+              contentPadding: listTilePadding,
+              onTap: () => _navigateTo(context, const AddSpacePage()),
+            ),
             ListTile(
               leading: Icon(Icons.message_rounded, size: iconSize),
               title: Text('My Enquiries', style: TextStyle(fontSize: titleFontSize)),
@@ -189,6 +198,17 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
               contentPadding: listTilePadding,
               onTap: () => _navigateTo(context, const ProfessionalPage()),
             ),
+
+            // TEMPORARY: Spaces List Page
+            // TODO: Remove this section later
+            // ListTile(
+            //   leading: Icon(Icons.list, size: iconSize),
+            //   title: Text('Spaces List', style: TextStyle(fontSize: titleFontSize)),
+            //   contentPadding: listTilePadding,
+            //   onTap: () => _navigateTo(context, const SpacesListPage()),
+            // ),
+            // END TEMPORARY
+
             const Divider(),
             if (_savedSessions.isNotEmpty) ...[
               Padding(

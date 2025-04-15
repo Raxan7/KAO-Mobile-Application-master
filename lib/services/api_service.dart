@@ -8,9 +8,12 @@ import '../models/motel.dart';
 import '../models/notification_model.dart';
 import '../models/property.dart';
 import '../models/user_property.dart';
+import '../models/space.dart'; 
+import '../models/space_category.dart';
 import '../utils/constants.dart';
 
 class ApiService {
+  static const String imageUrl = baseUrl;
   static const String baseUrl = apiUrl;
 
   Future<List<Hotel>> fetchHotels() async {
@@ -917,6 +920,214 @@ class ApiService {
       return data.map((property) => UserProperty.fromJson(property)).toList();
     } else {
       throw Exception('Failed to load bookmarked properties');
+    }
+  }
+
+  // Spaces
+  static Future<List<SpaceCategory>> fetchSpaceCategories() async {
+    try {
+      print('Fetching space categories from: $baseUrl/user/fetch_space_categories.php');
+      final response = await http.get(Uri.parse('$baseUrl/user/fetch_space_categories.php'));
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') {
+          print('Successfully fetched ${(data['data'] as List).length} categories');
+          return (data['data'] as List)
+              .map((category) => SpaceCategory.fromJson(category))
+              .toList();
+        } else {
+          print('API Error: ${data['message'] ?? 'No error message provided'}');
+          throw Exception(data['message'] ?? 'Failed to load categories');
+        }
+      } else {
+        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        throw Exception('Failed to load categories - HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Exception in fetchSpaceCategories: $e');
+      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      rethrow;
+    }
+  }
+
+  static Future<List<Space>> fetchSpaces({
+    String? categoryId,
+    String? subcategoryId,
+    String? userId,
+  }) async {
+    try {
+      final Map<String, String> queryParams = {};
+      if (categoryId != null) queryParams['category_id'] = categoryId;
+      if (subcategoryId != null) queryParams['subcategory_id'] = subcategoryId;
+      if (userId != null) queryParams['user_id'] = userId;
+
+      final uri = Uri.parse('$baseUrl/user/fetch_spaces.php').replace(queryParameters: queryParams);
+      print('Fetching spaces from: $uri');
+      
+      final response = await http.get(uri);
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') {
+          print('Successfully fetched ${(data['data'] as List).length} spaces');
+          return (data['data'] as List)
+              .map((space) => Space.fromJson(space))
+              .toList();
+        } else {
+          print('API Error: ${data['message'] ?? 'No error message provided'}');
+          throw Exception(data['message'] ?? 'Failed to load spaces');
+        }
+      } else {
+        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        throw Exception('Failed to load spaces - HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Exception in fetchSpaces: $e');
+      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      rethrow;
+    }
+  }
+
+  static Future<Map<String, dynamic>> addSpace(Map<String, dynamic> spaceData) async {
+    try {
+      print('Adding space with data: ${jsonEncode(spaceData)}');
+      final response = await http.post(
+        Uri.parse('$baseUrl/user/add_space.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(spaceData),
+      );
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        if (result['status'] == 'success') {
+          print('Successfully added space with ID: ${result['space_id']}');
+        } else {
+          print('API Error: ${result['message'] ?? 'No error message provided'}');
+        }
+        return result;
+      } else {
+        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        throw Exception('Failed to add space - HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Exception in addSpace: $e');
+      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      rethrow;
+    }
+  }
+
+  static Future<Map<String, dynamic>> uploadSpaceMedia(
+      String spaceId, String mediaType, String filePath, bool thumb) async {
+    try {
+      print('Uploading media for space $spaceId');
+      print('Media type: $mediaType, File path: $filePath, Thumbnail: $thumb');
+      
+      var request = http.MultipartRequest(
+        'POST', 
+        Uri.parse('$baseUrl/user/upload_space_media.php')
+      );
+
+      request.fields['space_id'] = spaceId;
+      request.fields['media_type'] = mediaType;
+      request.fields['thumb'] = thumb ? '1' : '0';
+
+      request.files.add(await http.MultipartFile.fromPath('media_file', filePath));
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      print('Response status: ${response.statusCode}');
+      print('Response body: $responseBody');
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(responseBody);
+        if (result['status'] == 'success') {
+          print('Successfully uploaded media for space $spaceId');
+        } else {
+          print('API Error: ${result['message'] ?? 'No error message provided'}');
+        }
+        return result;
+      } else {
+        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        return {
+          'status': 'error',
+          'message': 'Failed to upload media: ${response.statusCode}'
+        };
+      }
+    } catch (e) {
+      print('Exception in uploadSpaceMedia: $e');
+      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      return {
+        'status': 'error',
+        'message': 'Error occurred during media upload: $e'
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateSpace(
+      String spaceId, Map<String, dynamic> updatedData) async {
+    try {
+      print('Updating space $spaceId with data: ${jsonEncode(updatedData)}');
+      final response = await http.put(
+        Uri.parse('$baseUrl/user/update_space.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'space_id': spaceId, ...updatedData}),
+      );
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        if (result['status'] == 'success') {
+          print('Successfully updated space $spaceId');
+        } else {
+          print('API Error: ${result['message'] ?? 'No error message provided'}');
+        }
+        return result;
+      } else {
+        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        throw Exception('Failed to update space - HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Exception in updateSpace: $e');
+      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      rethrow;
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteSpace(String spaceId) async {
+    try {
+      print('Deleting space $spaceId');
+      final response = await http.delete(
+        Uri.parse('$baseUrl/user/delete_space.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'space_id': spaceId}),
+      );
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        if (result['status'] == 'success') {
+          print('Successfully deleted space $spaceId');
+        } else {
+          print('API Error: ${result['message'] ?? 'No error message provided'}');
+        }
+        return result;
+      } else {
+        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        throw Exception('Failed to delete space - HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Exception in deleteSpace: $e');
+      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      rethrow;
     }
   }
 }

@@ -59,7 +59,7 @@ class _LoginPageState extends State<LoginPage> {
                   if (!isDesktop) const SizedBox(height: 50),
                   Center(
                     child: Image.asset(
-                      'assets/images/splash_icon.png',
+                      'assets/images/herevar_logo_blue.png',
                       width: isDesktop ? 150 : 100,
                       height: isDesktop ? 150 : 100,
                     ),

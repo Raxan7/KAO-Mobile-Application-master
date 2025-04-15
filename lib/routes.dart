@@ -10,6 +10,8 @@ import 'views/user/home_page.dart';
 import 'views/user/education_page.dart';
 import 'views/user/development_page.dart';
 import 'views/user/agriculture_page.dart';
+import 'views/user/spaces_list_page.dart';
+import 'views/user/add_space_page.dart';
 import 'widgets/app_scaffold.dart';
 
 // Helper function to retrieve user details from SharedPreferences
@@ -37,6 +39,8 @@ class AppRoutes {
   static const String education = '/education';
   static const String development = '/development';
   static const String agriculture = '/agriculture';
+  static const String spacesList = '/spacesList';
+  static const String addSpace = '/addSpace';
 
   static Map<String, WidgetBuilder> getRoutes(
       bool isDarkMode, Function(bool) onThemeChanged) {
@@ -157,6 +161,26 @@ class AppRoutes {
               }
             },
           ),
+      spacesList: (context) => FutureBuilder<Map<String, String?>>(
+            future: getUserDetails(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError || snapshot.data == null) {
+                return const Center(child: Text('Error loading user details'));
+              } else {
+                final userDetails = snapshot.data!;
+                return SpacesListPage(
+                  userId: userDetails['userId'],
+                  userName: userDetails['userName'],
+                  userEmail: userDetails['userEmail'],
+                  isLoggedIn: true,
+                  onThemeChanged: onThemeChanged,
+                );
+              }
+            },
+          ),
+      addSpace: (context) => const AddSpacePage(),
       // dalaliProfileInUser: (context) => ProfileBaseScreen(),
     };
   }

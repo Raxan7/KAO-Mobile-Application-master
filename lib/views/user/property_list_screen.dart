@@ -1,10 +1,12 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kao_app/widgets/cards/property_card.dart';
+import 'package:kao_app/widgets/cards/space_card.dart';
 import '../../models/user_property.dart';
+import '../../models/space.dart';
 import '../../services/api_service.dart';
 import '../../widgets/persistent_drawer.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'spaces_list_page.dart'; // Add this import
 
 class PropertyListScreen extends StatefulWidget {
   final String? userId;
@@ -64,19 +66,14 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
         };
       }).toList().reversed.toList();
     } catch (e) {
-      print(e);
+      print('Error fetching properties: $e');
       throw Exception('Failed to fetch properties: $e');
     }
   }
 
-  List<Widget> _pages(BuildContext context) => [
-        _buildPropertyList(context),
-        _buildPlaceholderPage('Education Page'),
-        _buildPlaceholderPage('Development Page'),
-        _buildPlaceholderPage('Agriculture Page'),
-      ];
-
   Widget _buildPropertyList(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _propertiesFuture,
       builder: (context, snapshot) {
@@ -87,34 +84,25 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
         } else if (snapshot.hasData) {
           final properties = snapshot.data!;
           
-          // Responsive grid layout
-          if (MediaQuery.of(context).size.width > 600) {
-            // Tablet/Desktop view
-            return GridView.builder(
+          if (isDesktop) {
+            return ListView.builder(
               controller: _scrollController,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 3 : 2,
-                childAspectRatio: 0.8,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              padding: EdgeInsets.symmetric(
-                horizontal: MediaQuery.of(context).size.width > 1200 ? 32 : 16,
-                vertical: 16,
-              ),
               itemCount: properties.length,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               itemBuilder: (context, index) {
                 final property = properties[index]['property'] as UserProperty;
                 final images = properties[index]['images'] as List<String>;
-                return PropertyCard(
-                  property: property,
-                  images: images,
-                  isDesktop: MediaQuery.of(context).size.width > 600,
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: PropertyCard(
+                    property: property,
+                    images: images,
+                    isDesktop: true,
+                  ),
                 );
               },
             );
           } else {
-            // Mobile view
             return ListView.builder(
               controller: _scrollController,
               itemCount: properties.length,
@@ -140,27 +128,32 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     );
   }
 
-  Widget _buildPlaceholderPage(String title) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-        ),
-      ),
-    );
-  }
-
   void _onItemTapped(int index, String page) {
     setState(() {
       _selectedIndex = index;
       _currentPage = page;
     });
-    _showToast('$page clicked');
+
+    if (index == 0) {
+      // Home tab - do nothing, we're already here
+      _showToast('$page clicked');
+    } else {
+      // Space category tabs - navigate to SpacesListPage with the category
+      final categoryId = index.toString(); // Assuming index matches your category IDs
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SpacesListPage(
+            categoryId: categoryId,
+            userId: widget.userId,
+            userName: widget.userName,
+            userEmail: widget.userEmail,
+            isLoggedIn: widget.isLoggedIn,
+            onThemeChanged: widget.onThemeChanged,
+          ),
+        ),
+      );
+    }
   }
 
   void _showToast(String message) {
@@ -174,55 +167,96 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 600;
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Properties'),
-        centerTitle: isDesktop,
-      ),
-      drawer: isDesktop ? null : PersistentDrawer(
-        userId: widget.userId,
-        userName: widget.userName,
-        userEmail: widget.userEmail,
-        isLoggedIn: widget.isLoggedIn,
-        onThemeChanged: widget.onThemeChanged,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Responsive tab bar
-            Container(
-              height: 50,
-              padding: EdgeInsets.symmetric(
-                horizontal: isDesktop ? 32 : 8,
-              ),
-              child: Center(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+
+    if (isDesktop) {
+      return Column(
+        children: [
+          Container(
+            height: 60,
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/herevar_logo_blue.png',
+                  width: 40,
+                  height: 40,
+                ),
+                const SizedBox(width: 16),
+                const Text(
+                  'herevar',
+                  style: TextStyle(
+                    color: Color(0xFF0D47A1),
+                    fontFamily: 'Poppins',
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _selectedIndex == 0 
+                      ? _buildPropertyList(context)
+                      : Container(), // Empty container for other tabs since we navigate away
+                ),
+                Container(
+                  width: 200,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       _buildTabButton('Home', 0, isDesktop),
+                      const SizedBox(height: 8),
                       _buildTabButton('Education', 1, isDesktop),
-                      _buildTabButton('Development', 2, isDesktop),
-                      _buildTabButton('Agriculture', 3, isDesktop),
+                      const SizedBox(height: 8),
+                      _buildTabButton('Creators', 2, isDesktop),
+                      const SizedBox(height: 8),
+                      _buildTabButton('Technology', 3, isDesktop),
+                      const SizedBox(height: 8),
+                      _buildTabButton('News', 4, isDesktop),
                     ],
                   ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        Container(
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Center(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildTabButton('Home', 0, isDesktop),
+                  _buildTabButton('Education', 1, isDesktop),
+                  _buildTabButton('Creators', 2, isDesktop),
+                  _buildTabButton('Technology', 3, isDesktop),
+                  _buildTabButton('News', 4, isDesktop),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isDesktop ? 32 : 0,
-                ),
-                child: _pages(context)[_selectedIndex],
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: _selectedIndex == 0 
+              ? _buildPropertyList(context)
+              : Container(), // Empty container for other tabs since we navigate away
+        ),
+      ],
     );
   }
 
@@ -231,7 +265,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          foregroundColor: _selectedIndex == index ? Colors.black : Colors.white,
+          foregroundColor: _selectedIndex == index ? Color(0xFF0D47A1) : Colors.white,
           backgroundColor: _selectedIndex == index ? Colors.white : Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),

@@ -7,26 +7,24 @@ import 'package:intl/intl.dart';
 import 'package:kao_app/services/user_preferences.dart';
 import 'package:kao_app/utils/constants.dart';
 import 'package:kao_app/views/user/dalali_profile_in_user/screens/profile_base_screen.dart';
-import '../../models/user_property.dart';
-import '../../views/user/property_detail.dart';
+import '../../models/space.dart';
+import '../../views/user/space_detail_page.dart';
 
-class PropertyCard extends StatefulWidget {
-  final UserProperty property;
-  final List<String> images;
+class SpaceCard extends StatefulWidget {
+  final Space space;
   final bool isDesktop;
 
-  const PropertyCard({
-    required this.property,
-    required this.images,
+  const SpaceCard({
+    required this.space,
     this.isDesktop = false,
     super.key,
   });
 
   @override
-  _PropertyCardState createState() => _PropertyCardState();
+  _SpaceCardState createState() => _SpaceCardState();
 }
 
-class _PropertyCardState extends State<PropertyCard> {
+class _SpaceCardState extends State<SpaceCard> {
   int _currentImageIndex = 0;
   Timer? _imageTimer;
   String? profilePicUrl;
@@ -42,7 +40,7 @@ class _PropertyCardState extends State<PropertyCard> {
   @override
   void initState() {
     super.initState();
-    if (widget.images.length > 1) {
+    if (widget.space.media.isNotEmpty && widget.space.media.length > 1) {
       _startImageCarousel();
     }
     _fetchUserDetails();
@@ -63,7 +61,7 @@ class _PropertyCardState extends State<PropertyCard> {
     _imageTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted) {
         setState(() {
-          _currentImageIndex = (_currentImageIndex + 1) % widget.images.length;
+          _currentImageIndex = (_currentImageIndex + 1) % widget.space.media.length;
         });
       }
     });
@@ -71,8 +69,8 @@ class _PropertyCardState extends State<PropertyCard> {
 
   Future<void> _fetchUserDetails() async {
     final String apiUrl =
-        "$baseUrl/api/dalali/get_user_details.php?userId=${widget.property.userId}";
-    const String imageUrl = "$baseUrl/images/users/";
+        "$baseUrl/api/dalali/get_user_details.php?userId=${widget.space.userId}";
+    const String imageUrl = "$baseUrl/images/spaces/";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -91,7 +89,7 @@ class _PropertyCardState extends State<PropertyCard> {
         }
       }
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("Error fetching user details: $e");
     }
   }
 
@@ -119,7 +117,7 @@ class _PropertyCardState extends State<PropertyCard> {
     if (currentUserId == null) return;
 
     final String apiUrl =
-        "$baseUrl/api/interactions/interaction_counts.php?property_id=${widget.property.propertyId}&user_id=$currentUserId";
+        "$baseUrl/api/interactions/space_interaction_counts.php?space_id=${widget.space.id}&user_id=$currentUserId";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -131,18 +129,19 @@ class _PropertyCardState extends State<PropertyCard> {
           likes = int.tryParse(data['likes'].toString()) ?? 0;
           shares = int.tryParse(data['shares'].toString()) ?? 0;
           isLiked = data['isLiked'] ?? false;
+          isBookmarked = data['isBookmarked'] ?? false;
         });
       }
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("Error fetching interaction counts: $e");
     }
   }
 
-  Future<void> _likeProperty() async {
-    const String apiUrl = "$baseUrl/api/interactions/like.php";
+  Future<void> _likeSpace() async {
+    const String apiUrl = "$baseUrl/api/interactions/like_space.php";
     final Map<String, dynamic> requestBody = {
       "user_id": currentUserId,
-      "property_id": widget.property.propertyId,
+      "space_id": widget.space.id,
     };
 
     try {
@@ -167,15 +166,15 @@ class _PropertyCardState extends State<PropertyCard> {
         }
       }
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("Error liking space: $e");
     }
   }
 
-  Future<void> _bookmarkProperty() async {
-    const String apiUrl = "$baseUrl/api/interactions/bookmark.php";
+  Future<void> _bookmarkSpace() async {
+    const String apiUrl = "$baseUrl/api/interactions/bookmark_space.php";
     final Map<String, dynamic> requestBody = {
       "user_id": currentUserId,
-      "property_id": widget.property.propertyId,
+      "space_id": widget.space.id,
     };
 
     try {
@@ -196,15 +195,15 @@ class _PropertyCardState extends State<PropertyCard> {
         }
       }
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("Error bookmarking space: $e");
     }
   }
 
-  Future<void> _shareProperty() async {
-    const String apiUrl = "$baseUrl/api/interactions/share.php";
+  Future<void> _shareSpace() async {
+    const String apiUrl = "$baseUrl/api/interactions/share_space.php";
     final Map<String, dynamic> requestBody = {
       "user_id": currentUserId,
-      "property_id": widget.property.propertyId,
+      "space_id": widget.space.id,
     };
 
     try {
@@ -224,7 +223,7 @@ class _PropertyCardState extends State<PropertyCard> {
         }
       }
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("Error sharing space: $e");
     }
   }
 
@@ -237,11 +236,9 @@ class _PropertyCardState extends State<PropertyCard> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 600;
+    final isLargeScreen = widget.isDesktop || screenWidth > 600;
     final cardWidth = isLargeScreen ? screenWidth * 0.6 : screenWidth * 0.9;
-    final NumberFormat currencyFormat = NumberFormat('#,###');
-    final String formattedPrice = currencyFormat.format(widget.property.price);
-    final String timeAgo = getTimeAgo(widget.property.createdAt);
+    final String timeAgo = getTimeAgo(widget.space.createdAt);
 
     return Container(
       width: cardWidth,
@@ -254,9 +251,7 @@ class _PropertyCardState extends State<PropertyCard> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => PropertyDetail(
-                propertyId: int.parse(widget.property.propertyId),
-              ),
+              builder: (context) => SpaceDetailPage(space: widget.space),
             ),
           );
         },
@@ -313,35 +308,57 @@ class _PropertyCardState extends State<PropertyCard> {
                             ),
                           ),
                         ),
+                        // Category Chip
+                        Chip(
+                          label: Text(
+                            widget.space.categoryName,
+                            style: TextStyle(
+                              fontSize: isLargeScreen ? 14 : 12,
+                              color: Colors.white,
+                            ),
+                          ),
+                          backgroundColor: Colors.blue,
+                        ),
                       ],
                     ),
                   ),
 
                 // Image Section
-                AspectRatio(
-                  aspectRatio: isLargeScreen ? 16/8 : 16/9,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(
-                        widget.images[_currentImageIndex],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => 
-                          Container(color: Colors.grey[200]),
-                      ),
-                      if (widget.images.length > 1)
-                        Positioned(
-                          right: 12.0,
-                          bottom: 12.0,
-                          child: FloatingActionButton.small(
-                            heroTag: null,
-                            onPressed: _nextImage,
-                            child: const Icon(Icons.arrow_forward),
-                          ),
+                if (widget.space.media.isNotEmpty)
+                  AspectRatio(
+                    aspectRatio: isLargeScreen ? 16/8 : 16/9,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          '$baseUrl/uploads/spaces/${widget.space.media[_currentImageIndex].mediaUrl}',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => 
+                            Container(color: Colors.grey[200]),
                         ),
-                    ],
+                        if (widget.space.media.length > 1)
+                          Positioned(
+                            right: 12.0,
+                            bottom: 12.0,
+                            child: FloatingActionButton.small(
+                              heroTag: null,
+                              onPressed: _nextImage,
+                              child: const Icon(Icons.arrow_forward),
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                else
+                  AspectRatio(
+                    aspectRatio: isLargeScreen ? 16/8 : 16/9,
+                    child: Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Icon(Icons.image, size: 50, color: Colors.grey),
+                      ),
+                    ),
                   ),
-                ),
 
                 // Interaction Buttons Section
                 Container(
@@ -360,7 +377,7 @@ class _PropertyCardState extends State<PropertyCard> {
                           icon: isLiked ? Icons.favorite : Icons.favorite_border,
                           color: isLiked ? Colors.red : Colors.black,
                           count: likes,
-                          onPressed: _likeProperty,
+                          onPressed: _likeSpace,
                         ),
                         _buildInteractionIcon(
                           icon: Icons.comment_outlined,
@@ -372,13 +389,13 @@ class _PropertyCardState extends State<PropertyCard> {
                           icon: Icons.share,
                           color: Colors.green,
                           count: shares,
-                          onPressed: _shareProperty,
+                          onPressed: _shareSpace,
                         ),
                         _buildInteractionIcon(
                           icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                           color: Colors.orange,
                           count: 0, // Bookmark doesn't have count
-                          onPressed: _bookmarkProperty,
+                          onPressed: _bookmarkSpace,
                         ),
                       ],
                     ),
@@ -392,7 +409,7 @@ class _PropertyCardState extends State<PropertyCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.property.title,
+                        widget.space.title,
                         style: TextStyle(
                           fontSize: isLargeScreen ? 20 : 18,
                           fontWeight: FontWeight.bold,
@@ -401,22 +418,42 @@ class _PropertyCardState extends State<PropertyCard> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'Price: Tsh $formattedPrice',
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 18 : 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
+                      // Subcategory Chip
+                      Chip(
+                        label: Text(
+                          widget.space.subcategoryName,
+                          style: TextStyle(
+                            fontSize: isLargeScreen ? 14 : 12,
+                            color: Colors.white,
+                          ),
                         ),
+                        backgroundColor: Colors.blue[300],
                       ),
                       const SizedBox(height: 12),
+                      if (widget.space.location != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Icon(Icons.location_on, size: 16, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.space.location!,
+                                style: TextStyle(
+                                  fontSize: isLargeScreen ? 14 : 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       Text(
-                        _getShortDescription(widget.property.description),
+                        _getShortDescription(widget.space.description),
                         style: TextStyle(
                           fontSize: isLargeScreen ? 14 : 12,
                         ),
                       ),
-                      if (widget.property.description.split(' ').length > 12)
+                      if (widget.space.description.split(' ').length > 12)
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
@@ -467,7 +504,7 @@ class _PropertyCardState extends State<PropertyCard> {
   void _nextImage() {
     if (mounted) {
       setState(() {
-        _currentImageIndex = (_currentImageIndex + 1) % widget.images.length;
+        _currentImageIndex = (_currentImageIndex + 1) % widget.space.media.length;
       });
     }
   }
@@ -480,7 +517,7 @@ class _PropertyCardState extends State<PropertyCard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ProfileBaseScreen(userId: widget.property.userId),
+        builder: (context) => ProfileBaseScreen(userId: widget.space.userId),
       ),
     );
   }
