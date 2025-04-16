@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/space.dart';
-import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 
 class SpaceDetailPage extends StatelessWidget {

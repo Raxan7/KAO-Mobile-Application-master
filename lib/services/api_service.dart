@@ -962,7 +962,7 @@ class ApiService {
       final Map<String, String> queryParams = {};
       if (categoryId != null) queryParams['category_id'] = categoryId;
       if (subcategoryId != null) queryParams['subcategory_id'] = subcategoryId;
-      if (userId != null) queryParams['user_id'] = userId;
+      // if (userId != null) queryParams['user_id'] = userId;
 
       final uri = Uri.parse('$baseUrl/user/fetch_spaces.php').replace(queryParameters: queryParams);
       print('Fetching spaces from: $uri');
@@ -1023,50 +1023,24 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> uploadSpaceMedia(
-      String spaceId, String mediaType, String filePath, bool thumb) async {
-    try {
-      print('Uploading media for space $spaceId');
-      print('Media type: $mediaType, File path: $filePath, Thumbnail: $thumb');
-      
-      var request = http.MultipartRequest(
-        'POST', 
-        Uri.parse('$baseUrl/user/upload_space_media.php')
-      );
+  static Future<void> uploadSpaceMedia(String spaceId, String mediaType, String mediaData, bool isBase64) async {
+    final uri = Uri.parse('$baseUrl/spaces/$spaceId/media');
+    final request = http.MultipartRequest('POST', uri);
 
-      request.fields['space_id'] = spaceId;
-      request.fields['media_type'] = mediaType;
-      request.fields['thumb'] = thumb ? '1' : '0';
+    request.fields['media_type'] = mediaType;
 
-      request.files.add(await http.MultipartFile.fromPath('media_file', filePath));
+    if (isBase64) {
+      // Handle base64 image upload
+      request.fields['media_data'] = mediaData;
+      request.fields['is_base64'] = 'true';
+    } else {
+      // Handle file path upload
+      request.files.add(await http.MultipartFile.fromPath('media_file', mediaData));
+    }
 
-      final response = await request.send();
-      final responseBody = await response.stream.bytesToString();
-      print('Response status: ${response.statusCode}');
-      print('Response body: $responseBody');
-
-      if (response.statusCode == 200) {
-        final result = jsonDecode(responseBody);
-        if (result['status'] == 'success') {
-          print('Successfully uploaded media for space $spaceId');
-        } else {
-          print('API Error: ${result['message'] ?? 'No error message provided'}');
-        }
-        return result;
-      } else {
-        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        return {
-          'status': 'error',
-          'message': 'Failed to upload media: ${response.statusCode}'
-        };
-      }
-    } catch (e) {
-      print('Exception in uploadSpaceMedia: $e');
-      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
-      return {
-        'status': 'error',
-        'message': 'Error occurred during media upload: $e'
-      };
+    final response = await request.send();
+    if (response.statusCode != 200) {
+      throw Exception('Failed to upload media');
     }
   }
 

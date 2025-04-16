@@ -75,7 +75,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return _dataLoaded
         ? MaterialApp(
-            title: 'Hotel Booking App',
+            title: 'Discover & Connect',
             theme: ThemeData(
               brightness: Brightness.light,
               primarySwatch: Colors.blue,

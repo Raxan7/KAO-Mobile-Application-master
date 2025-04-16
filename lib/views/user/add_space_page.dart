@@ -1,8 +1,11 @@
 import 'dart:io';
-import 'dart:async'; // Add this import
+import 'dart:async';
+import 'dart:typed_data'; // Add this import
+import 'package:flutter/foundation.dart'; // Add this import
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert'; // Add this import
 import '../../services/api_service.dart';
 import '../../models/space_category.dart';
 import 'spaces_list_page.dart'; // Import SpacesListPage
@@ -22,7 +25,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
   final TextEditingController _contactInfoController = TextEditingController();
   final TextEditingController _websiteUrlController = TextEditingController();
 
-  final List<File> _imageFiles = [];
+  final List<dynamic> _imageFiles = []; // Use dynamic to handle both File and Uint8List
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   bool _showImagePicker = true;
@@ -81,11 +84,21 @@ class _AddSpacePageState extends State<AddSpacePage> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
+    if (kIsWeb) {
+      // For web, use pickMultiImage and store as Uint8List
+      final pickedFiles = await _picker.pickMultiImage();
+      final imageBytes = await Future.wait(pickedFiles.map((file) async => await file.readAsBytes()));
       setState(() {
-        _imageFiles.add(File(pickedFile.path));
+        _imageFiles.addAll(imageBytes);
       });
+    } else {
+      // For mobile, use pickImage and store as File
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() {
+          _imageFiles.add(File(pickedFile.path));
+        });
+      }
     }
   }
 
@@ -140,7 +153,20 @@ class _AddSpacePageState extends State<AddSpacePage> {
 
           // Upload all selected images
           for (var imageFile in _imageFiles) {
-            await ApiService.uploadSpaceMedia(spaceId, 'image', imageFile.path, false);
+            try {
+              if (imageFile is File) {
+                // Upload File directly
+                await ApiService.uploadSpaceMedia(spaceId, 'image', imageFile.path, false);
+              } else if (imageFile is Uint8List) {
+                // Convert Uint8List to base64 string for web
+                final base64Image = base64Encode(imageFile);
+                await ApiService.uploadSpaceMedia(spaceId, 'image', base64Image, true);
+              }
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to upload image: $e')),
+              );
+            }
           }
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -331,14 +357,22 @@ class _AddSpacePageState extends State<AddSpacePage> {
                   ),
                   itemCount: _imageFiles.length,
                   itemBuilder: (context, index) {
+                    final image = _imageFiles[index];
                     return Stack(
                       children: [
-                        Image.file(
-                          _imageFiles[index],
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
+                        image is Uint8List
+                            ? Image.memory(
+                                image,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              )
+                            : Image.file(
+                                image as File,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
                         Positioned(
                           top: 4,
                           right: 4,

@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:kao_app/services/user_preferences.dart';
 import 'package:kao_app/utils/constants.dart';
 import 'package:kao_app/views/user/dalali_profile_in_user/screens/profile_base_screen.dart';
