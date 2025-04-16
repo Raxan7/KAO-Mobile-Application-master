@@ -8,7 +8,7 @@ import '../../models/space_category.dart';
 import 'spaces_list_page.dart'; // Import SpacesListPage
 
 class AddSpacePage extends StatefulWidget {
-  const AddSpacePage({Key? key}) : super(key: key);
+  const AddSpacePage({super.key});
 
   @override
   _AddSpacePageState createState() => _AddSpacePageState();
@@ -22,7 +22,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
   final TextEditingController _contactInfoController = TextEditingController();
   final TextEditingController _websiteUrlController = TextEditingController();
 
-  List<File> _imageFiles = [];
+  final List<File> _imageFiles = [];
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   bool _showImagePicker = true;
@@ -114,7 +114,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
         final userName = prefs.getString('userName');
         final userEmail = prefs.getString('userEmail');
         final isLoggedIn = prefs.getBool('isLoggedIn');
-        final onThemeChanged = () {}; // Replace with the actual callback
+        onThemeChanged() {} // Replace with the actual callback
 
         if (userId == null) {
           ScaffoldMessenger.of(context).showSnackBar(

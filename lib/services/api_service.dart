@@ -948,7 +948,7 @@ class ApiService {
       }
     } catch (e) {
       print('Exception in fetchSpaceCategories: $e');
-      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
       rethrow;
     }
   }
@@ -988,7 +988,7 @@ class ApiService {
       }
     } catch (e) {
       print('Exception in fetchSpaces: $e');
-      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
       rethrow;
     }
   }
@@ -1018,7 +1018,7 @@ class ApiService {
       }
     } catch (e) {
       print('Exception in addSpace: $e');
-      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
       rethrow;
     }
   }
@@ -1062,7 +1062,7 @@ class ApiService {
       }
     } catch (e) {
       print('Exception in uploadSpaceMedia: $e');
-      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
       return {
         'status': 'error',
         'message': 'Error occurred during media upload: $e'
@@ -1096,7 +1096,7 @@ class ApiService {
       }
     } catch (e) {
       print('Exception in updateSpace: $e');
-      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
       rethrow;
     }
   }
@@ -1126,7 +1126,7 @@ class ApiService {
       }
     } catch (e) {
       print('Exception in deleteSpace: $e');
-      print('Stack trace: ${e is Error ? (e as Error).stackTrace : ''}');
+      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
       rethrow;
     }
   }

@@ -5,6 +5,7 @@ import 'add_space_page.dart';
 import 'space_detail_page.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../widgets/persistent_drawer.dart';
+import '../../utils/constants.dart';
 
 class SpacesListPage extends StatefulWidget {
   final String? categoryId;
@@ -16,7 +17,7 @@ class SpacesListPage extends StatefulWidget {
   final Function(bool) onThemeChanged; // Add onThemeChanged parameter
 
   const SpacesListPage({
-    Key? key,
+    super.key,
     this.categoryId,
     this.subcategoryId,
     this.userId,
@@ -24,7 +25,7 @@ class SpacesListPage extends StatefulWidget {
     this.userEmail,
     required this.isLoggedIn,
     required this.onThemeChanged,
-  }) : super(key: key);
+  });
 
   @override
   _SpacesListPageState createState() => _SpacesListPageState();
@@ -121,10 +122,10 @@ class _SpacesListPageState extends State<SpacesListPage> {
                       // Thumbnail image
                       if (space.thumbnail != null)
                         SizedBox(
-                          height: 200,
+                          height: MediaQuery.of(context).size.height * 0.25, // Adjust height dynamically
                           width: double.infinity,
                           child: Image.network(
-                            '${ApiService.imageUrl}/images/spaces/${space.thumbnail}',
+                            '$spaceImage/${space.thumbnail}',
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -208,26 +209,25 @@ class _SpacesListPageState extends State<SpacesListPage> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 600;
-
+    
     return Scaffold(
-      drawer: !isDesktop
-          ? PersistentDrawer(
-              userId: widget.userId,
-              userName: widget.userName, // Pass userName
-              userEmail: widget.userEmail, // Pass userEmail
-              isLoggedIn: widget.isLoggedIn, // Pass isLoggedIn
-              onThemeChanged: widget.onThemeChanged, // Pass onThemeChanged
-            )
-          : null,
+      backgroundColor: Colors.white,
+      drawer: !isDesktop ? PersistentDrawer(
+        userId: widget.userId,
+        userName: widget.userName,
+        userEmail: widget.userEmail,
+        isLoggedIn: widget.isLoggedIn,
+        onThemeChanged: widget.onThemeChanged,
+      ) : null,
       body: Row(
         children: [
           if (isDesktop)
             PersistentDrawer(
               userId: widget.userId,
-              userName: widget.userName, // Pass userName
-              userEmail: widget.userEmail, // Pass userEmail
-              isLoggedIn: widget.isLoggedIn, // Pass isLoggedIn
-              onThemeChanged: widget.onThemeChanged, // Pass onThemeChanged
+              userName: widget.userName,
+              userEmail: widget.userEmail,
+              isLoggedIn: widget.isLoggedIn,
+              onThemeChanged: widget.onThemeChanged,
             ),
           Expanded(
             child: Column(
@@ -257,10 +257,47 @@ class _SpacesListPageState extends State<SpacesListPage> {
                     ],
                   ),
                 ),
+                if (!isDesktop)
+                  Container(
+                    height: 50,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Center(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: _categories.asMap().entries.map((entry) {
+                            return _buildTabButton(entry.value, entry.key, isDesktop);
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
                 Expanded(
-                  child: _selectedTabIndex == 0
-                      ? _buildSpaceList(context)
-                      : Container(), // Empty container for other tabs since we navigate away
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildSpaceList(context),
+                      ),
+                      if (isDesktop)
+                        Container(
+                          width: 200,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: _categories.asMap().entries.map((entry) {
+                              return Column(
+                                children: [
+                                  _buildTabButton(entry.value, entry.key, isDesktop),
+                                  const SizedBox(height: 8),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),

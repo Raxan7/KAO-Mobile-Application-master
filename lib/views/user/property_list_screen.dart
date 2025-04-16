@@ -1,12 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:kao_app/widgets/cards/property_card.dart';
-import 'package:kao_app/widgets/cards/space_card.dart';
 import '../../models/user_property.dart';
-import '../../models/space.dart';
 import '../../services/api_service.dart';
 import '../../widgets/persistent_drawer.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'spaces_list_page.dart'; // Add this import
+import 'spaces_list_page.dart';
+import 'package:flutter/foundation.dart'; // Add this import for kIsWeb
 
 class PropertyListScreen extends StatefulWidget {
   final String? userId;
@@ -71,63 +71,6 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     }
   }
 
-  Widget _buildPropertyList(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 600;
-
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _propertiesFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (snapshot.hasData) {
-          final properties = snapshot.data!;
-          
-          if (isDesktop) {
-            return ListView.builder(
-              controller: _scrollController,
-              itemCount: properties.length,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              itemBuilder: (context, index) {
-                final property = properties[index]['property'] as UserProperty;
-                final images = properties[index]['images'] as List<String>;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: PropertyCard(
-                    property: property,
-                    images: images,
-                    isDesktop: true,
-                  ),
-                );
-              },
-            );
-          } else {
-            return ListView.builder(
-              controller: _scrollController,
-              itemCount: properties.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemBuilder: (context, index) {
-                final property = properties[index]['property'] as UserProperty;
-                final images = properties[index]['images'] as List<String>;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: PropertyCard(
-                    property: property,
-                    images: images,
-                    isDesktop: false,
-                  ),
-                );
-              },
-            );
-          }
-        } else {
-          return const Center(child: Text('No properties found.'));
-        }
-      },
-    );
-  }
-
   void _onItemTapped(int index, String page) {
     setState(() {
       _selectedIndex = index;
@@ -135,11 +78,9 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     });
 
     if (index == 0) {
-      // Home tab - do nothing, we're already here
       _showToast('$page clicked');
     } else {
-      // Space category tabs - navigate to SpacesListPage with the category
-      final categoryId = index.toString(); // Assuming index matches your category IDs
+      final categoryId = index.toString();
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -164,108 +105,12 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 600;
-
-    if (isDesktop) {
-      return Column(
-        children: [
-          Container(
-            height: 60,
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  'assets/images/herevar_logo_blue.png',
-                  width: 40,
-                  height: 40,
-                ),
-                const SizedBox(width: 16),
-                const Text(
-                  'herevar',
-                  style: TextStyle(
-                    color: Color(0xFF0D47A1),
-                    fontFamily: 'Poppins',
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: _selectedIndex == 0 
-                      ? _buildPropertyList(context)
-                      : Container(), // Empty container for other tabs since we navigate away
-                ),
-                Container(
-                  width: 200,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      _buildTabButton('Home', 0, isDesktop),
-                      const SizedBox(height: 8),
-                      _buildTabButton('Education', 1, isDesktop),
-                      const SizedBox(height: 8),
-                      _buildTabButton('Creators', 2, isDesktop),
-                      const SizedBox(height: 8),
-                      _buildTabButton('Technology', 3, isDesktop),
-                      const SizedBox(height: 8),
-                      _buildTabButton('News', 4, isDesktop),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      children: [
-        Container(
-          height: 50,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Center(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildTabButton('Home', 0, isDesktop),
-                  _buildTabButton('Education', 1, isDesktop),
-                  _buildTabButton('Creators', 2, isDesktop),
-                  _buildTabButton('Technology', 3, isDesktop),
-                  _buildTabButton('News', 4, isDesktop),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: _selectedIndex == 0 
-              ? _buildPropertyList(context)
-              : Container(), // Empty container for other tabs since we navigate away
-        ),
-      ],
-    );
-  }
-
   Widget _buildTabButton(String label, int index, bool isDesktop) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          foregroundColor: _selectedIndex == index ? Color(0xFF0D47A1) : Colors.white,
+          foregroundColor: _selectedIndex == index ? const Color(0xFF0D47A1) : Colors.white,
           backgroundColor: _selectedIndex == index ? Colors.white : Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -279,10 +124,160 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
         onPressed: () => _onItemTapped(index, label),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: isDesktop ? 16 : 14,
-          ),
+          style: TextStyle(fontSize: isDesktop ? 16 : 14),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPropertyList(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _propertiesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (snapshot.hasData) {
+          final properties = snapshot.data!;
+
+          return ListView.builder(
+            controller: _scrollController,
+            itemCount: properties.length,
+            padding: EdgeInsets.symmetric(
+              horizontal: isDesktop ? 32 : 16,
+              vertical: isDesktop ? 16 : 8,
+            ),
+            itemBuilder: (context, index) {
+              final property = properties[index]['property'] as UserProperty;
+              final images = properties[index]['images'] as List<String>;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: PropertyCard(
+                  property: property,
+                  images: images,
+                  isDesktop: isDesktop,
+                ),
+              );
+            },
+          );
+        } else {
+          return const Center(child: Text('No properties found.'));
+        }
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      drawer: !kIsWeb && !isDesktop // Ensure drawer is not shown on web
+          ? PersistentDrawer(
+              userId: widget.userId,
+              userName: widget.userName,
+              userEmail: widget.userEmail,
+              isLoggedIn: widget.isLoggedIn,
+              onThemeChanged: widget.onThemeChanged,
+            )
+          : null,
+      body: Row(
+        children: [
+          if (!kIsWeb && isDesktop) // Ensure drawer is not shown on web
+            PersistentDrawer(
+              userId: widget.userId,
+              userName: widget.userName,
+              userEmail: widget.userEmail,
+              isLoggedIn: widget.isLoggedIn,
+              onThemeChanged: widget.onThemeChanged,
+            ),
+          Expanded(
+            child: Column(
+              children: [
+                // App Bar
+                Container(
+                  height: 60,
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/images/herevar_logo_blue.png',
+                        width: 40,
+                        height: 40,
+                      ),
+                      const SizedBox(width: 16),
+                      const Text(
+                        'herevar',
+                        style: TextStyle(
+                          color: Color(0xFF0D47A1),
+                          fontFamily: 'Poppins',
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!isDesktop)
+                  Container(
+                    height: 50,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Center(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildTabButton('Home', 0, isDesktop),
+                            _buildTabButton('Education', 1, isDesktop),
+                            _buildTabButton('Creators', 2, isDesktop),
+                            _buildTabButton('Technology', 3, isDesktop),
+                            _buildTabButton('News', 4, isDesktop),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _selectedIndex == 0
+                            ? _buildPropertyList(context)
+                            : Container(),
+                      ),
+                      if (isDesktop)
+                        Container(
+                          width: 200,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Column(
+                            children: [
+                              _buildTabButton('Home', 0, isDesktop),
+                              const SizedBox(height: 8),
+                              _buildTabButton('Education', 1, isDesktop),
+                              const SizedBox(height: 8),
+                              _buildTabButton('Creators', 2, isDesktop),
+                              const SizedBox(height: 8),
+                              _buildTabButton('Technology', 3, isDesktop),
+                              const SizedBox(height: 8),
+                              _buildTabButton('News', 4, isDesktop),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

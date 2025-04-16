@@ -13,14 +13,44 @@ class PropertyDetail extends StatefulWidget {
   _PropertyDetailState createState() => _PropertyDetailState();
 }
 
-class _PropertyDetailState extends State<PropertyDetail> {
+class _PropertyDetailState extends State<PropertyDetail> with SingleTickerProviderStateMixin {
   String? userId;
   final TextEditingController _messageController = TextEditingController();
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
     _loadUserId();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeIn,
+      ),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOut,
+      ),
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _messageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserId() async {
@@ -42,6 +72,7 @@ class _PropertyDetailState extends State<PropertyDetail> {
         title: const Text('Property Detail'),
         centerTitle: true,
         backgroundColor: Colors.teal,
+        elevation: 0,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: ApiService.fetchPropertyDetailForUser(widget.propertyId),
@@ -64,78 +95,87 @@ class _PropertyDetailState extends State<PropertyDetail> {
             final dalaliId = property['user_id'] ?? 0;
 
             return SingleChildScrollView(
-              child: Padding(
-                padding: padding,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Image Section
-                    Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: isDesktop ? 800 : double.infinity,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12.0),
-                          child: Image.network(
-                            imageUrl,
-                            height: isDesktop ? 350 : 250,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Image.asset('assets/placeholder.png',
-                                    height: isDesktop ? 350 : 250,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Padding(
+                    padding: padding,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Image Section
+                        Hero(
+                          tag: 'property_${widget.propertyId}',
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: isDesktop ? 800 : double.infinity,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12.0),
+                                child: Image.network(
+                                  imageUrl,
+                                  height: isDesktop ? 350 : 250,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Image.asset('assets/placeholder.png',
+                                          height: isDesktop ? 350 : 250,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                    // Title and Price
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: isDesktop ? 32 : 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Price: Tsh $formattedPrice',
-                      style: TextStyle(
-                        fontSize: isDesktop ? 26 : 22,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.teal,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+                        // Title and Price
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: isDesktop ? 32 : 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Price: Tsh $formattedPrice',
+                          style: TextStyle(
+                            fontSize: isDesktop ? 26 : 22,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.teal,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
 
-                    // Property Details
-                    _buildSectionHeader('Property Details', isDesktop),
-                    _buildDetailRow('Status:', status, isDesktop),
-                    _buildDetailRow('Location:', location, isDesktop),
-                    const SizedBox(height: 20),
+                        // Property Details
+                        _buildSectionHeader('Property Details', isDesktop),
+                        _buildDetailRow('Status:', status, isDesktop),
+                        _buildDetailRow('Location:', location, isDesktop),
+                        const SizedBox(height: 20),
 
-                    // Features
-                    _buildSectionHeader('Description & Features', isDesktop),
-                    Text(
-                      description,
-                      style: TextStyle(fontSize: isDesktop ? 18 : 16),
+                        // Features
+                        _buildSectionHeader('Description & Features', isDesktop),
+                        Text(
+                          description,
+                          style: TextStyle(fontSize: isDesktop ? 18 : 16),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Message Input
+                        _buildMessageInput(context, isDesktop, widget.propertyId, 
+                            dalaliId, title, imageUrl),
+                        const SizedBox(height: 20),
+
+                        // Request Button
+                        Center(
+                          child: _buildRequestButton(context, isDesktop, userId, dalaliId),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-
-                    // Message Input
-                    _buildMessageInput(context, isDesktop, widget.propertyId, 
-                        dalaliId, title, imageUrl),
-                    const SizedBox(height: 20),
-
-                    // Request Button
-                    Center(
-                      child: _buildRequestButton(context, isDesktop, userId, dalaliId),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -241,7 +281,7 @@ class _PropertyDetailState extends State<PropertyDetail> {
             return;
           }
           final response = await ApiService.createNotification(
-            int.tryParse(userId!)!,
+            int.tryParse(userId)!,
             dalaliId,
             widget.propertyId,
           );

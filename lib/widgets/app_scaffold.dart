@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kao_app/widgets/bottom_navigation.dart';
 import 'package:kao_app/widgets/persistent_drawer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

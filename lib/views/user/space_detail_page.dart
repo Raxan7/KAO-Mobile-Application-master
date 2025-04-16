@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../models/space.dart';
 import '../../services/api_service.dart';
+import '../../utils/constants.dart';
 
 class SpaceDetailPage extends StatelessWidget {
   final Space space;
 
-  const SpaceDetailPage({Key? key, required this.space}) : super(key: key);
+  const SpaceDetailPage({super.key, required this.space});
 
   @override
   Widget build(BuildContext context) {
@@ -19,16 +20,15 @@ class SpaceDetailPage extends StatelessWidget {
           children: [
             // Image Gallery
             SizedBox(
-              height: 250,
+              height: MediaQuery.of(context).size.height * 0.3, // Adjust height dynamically
               child: PageView.builder(
                 itemCount: space.media.length,
                 itemBuilder: (context, index) {
                   final media = space.media[index];
                   return Image.network(
-                    'https://kaoworld.com/images/spaces/67fdd9c6796f9.png',
-                    // Uncomment the line below when using the actual API
-                    // '${ApiService.imageUrl}/images/spaces/${media.mediaUrl}',
+                    '$spaceImage/${media.mediaUrl}',
                     fit: BoxFit.cover,
+                    width: double.infinity, // Ensure the image spans the full width
                   );
                 },
               ),

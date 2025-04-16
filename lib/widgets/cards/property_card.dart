@@ -489,6 +489,6 @@ class _PropertyCardState extends State<PropertyCard> {
     final decodedDescription = utf8.decode(description.runes.toList());
     final words = decodedDescription.split(' ');
     if (words.length <= 12 || _isExpanded) return decodedDescription;
-    return words.take(12).join(' ') + '...';
+    return '${words.take(12).join(' ')}...';
   }
 }

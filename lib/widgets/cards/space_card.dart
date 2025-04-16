@@ -27,6 +27,7 @@ class SpaceCard extends StatefulWidget {
 class _SpaceCardState extends State<SpaceCard> {
   int _currentImageIndex = 0;
   Timer? _imageTimer;
+  static const String imageUrl = "$baseUrl/images/spaces/";
   String? profilePicUrl;
   String? username;
   String? currentUserId;
@@ -331,7 +332,7 @@ class _SpaceCardState extends State<SpaceCard> {
                       fit: StackFit.expand,
                       children: [
                         Image.network(
-                          '$baseUrl/uploads/spaces/${widget.space.media[_currentImageIndex].mediaUrl}',
+                          '$imageUrl/${widget.space.media[_currentImageIndex].mediaUrl}',
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => 
                             Container(color: Colors.grey[200]),
@@ -435,7 +436,7 @@ class _SpaceCardState extends State<SpaceCard> {
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Row(
                             children: [
-                              Icon(Icons.location_on, size: 16, color: Colors.grey),
+                              const Icon(Icons.location_on, size: 16, color: Colors.grey),
                               const SizedBox(width: 4),
                               Text(
                                 widget.space.location!,
@@ -526,6 +527,6 @@ class _SpaceCardState extends State<SpaceCard> {
     final decodedDescription = utf8.decode(description.runes.toList());
     final words = decodedDescription.split(' ');
     if (words.length <= 12 || _isExpanded) return decodedDescription;
-    return words.take(12).join(' ') + '...';
+    return '${words.take(12).join(' ')}...';
   }
 }
