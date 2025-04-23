@@ -6,7 +6,7 @@ import '../../models/user_property.dart';
 import '../../services/api_service.dart';
 import '../../widgets/persistent_drawer.dart';
 import 'spaces_list_page.dart';
-import 'package:flutter/foundation.dart'; // Add this import for kIsWeb
+import 'package:flutter/foundation.dart';
 
 class PropertyListScreen extends StatefulWidget {
   final String? userId;
@@ -31,8 +31,9 @@ class PropertyListScreen extends StatefulWidget {
 class _PropertyListScreenState extends State<PropertyListScreen> {
   late Future<List<Map<String, dynamic>>> _propertiesFuture;
   int _selectedIndex = 0;
-  String _currentPage = 'Home';
   final ScrollController _scrollController = ScrollController();
+  final List<String> _categories = ['Home', 'Education', 'Creators', 'Technology', 'News', 'Discover'];
+  final List<String> _categoryIds = ['0', '1', '2', '3', '4', '5'];
 
   @override
   void initState() {
@@ -74,11 +75,12 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   void _onItemTapped(int index, String page) {
     setState(() {
       _selectedIndex = index;
-      _currentPage = page;
     });
 
     if (index == 0) {
       _showToast('$page clicked');
+    } else if (index == 5) {
+      _showToast('Discover clicked');
     } else {
       final categoryId = index.toString();
       Navigator.push(
@@ -173,10 +175,41 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 600;
-
+    
     return Scaffold(
       backgroundColor: Colors.white,
-      drawer: !kIsWeb && !isDesktop // Ensure drawer is not shown on web
+      appBar: !isDesktop && !kIsWeb
+          ? AppBar(
+              automaticallyImplyLeading: true,
+              title: Container(
+                width: double.infinity,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/herevar_logo_blue.png',
+                      width: 40,
+                      height: 40,
+                    ),
+                    const SizedBox(width: 16),
+                    const Text(
+                      'herevar',
+                      style: TextStyle(
+                        color: Color(0xFF0D47A1),
+                        fontFamily: 'Poppins',
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              backgroundColor: Colors.white,
+              elevation: 0,
+              iconTheme: const IconThemeData(color: Colors.black),
+            )
+          : null,
+      drawer: !kIsWeb && !isDesktop
           ? PersistentDrawer(
               userId: widget.userId,
               userName: widget.userName,
@@ -187,7 +220,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
           : null,
       body: Row(
         children: [
-          if (!kIsWeb && isDesktop) // Ensure drawer is not shown on web
+          if (!kIsWeb && isDesktop)
             PersistentDrawer(
               userId: widget.userId,
               userName: widget.userName,
@@ -198,32 +231,32 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
           Expanded(
             child: Column(
               children: [
-                // App Bar
-                Container(
-                  height: 60,
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/images/herevar_logo_blue.png',
-                        width: 40,
-                        height: 40,
-                      ),
-                      const SizedBox(width: 16),
-                      const Text(
-                        'herevar',
-                        style: TextStyle(
-                          color: Color(0xFF0D47A1),
-                          fontFamily: 'Poppins',
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                if (isDesktop || kIsWeb)
+                  Container(
+                    height: 60,
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/herevar_logo_blue.png',
+                          width: 40,
+                          height: 40,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 16),
+                        const Text(
+                          'herevar',
+                          style: TextStyle(
+                            color: Color(0xFF0D47A1),
+                            fontFamily: 'Poppins',
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
                 if (!isDesktop)
                   Container(
                     height: 50,
@@ -233,13 +266,9 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildTabButton('Home', 0, isDesktop),
-                            _buildTabButton('Education', 1, isDesktop),
-                            _buildTabButton('Creators', 2, isDesktop),
-                            _buildTabButton('Technology', 3, isDesktop),
-                            _buildTabButton('News', 4, isDesktop),
-                          ],
+                          children: _categories.asMap().entries.map((entry) {
+                            return _buildTabButton(entry.value, entry.key, isDesktop);
+                          }).toList(),
                         ),
                       ),
                     ),
@@ -249,7 +278,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: _selectedIndex == 0
+                        child: _selectedIndex == 0 || _selectedIndex == 5
                             ? _buildPropertyList(context)
                             : Container(),
                       ),
@@ -258,17 +287,14 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                           width: 200,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Column(
-                            children: [
-                              _buildTabButton('Home', 0, isDesktop),
-                              const SizedBox(height: 8),
-                              _buildTabButton('Education', 1, isDesktop),
-                              const SizedBox(height: 8),
-                              _buildTabButton('Creators', 2, isDesktop),
-                              const SizedBox(height: 8),
-                              _buildTabButton('Technology', 3, isDesktop),
-                              const SizedBox(height: 8),
-                              _buildTabButton('News', 4, isDesktop),
-                            ],
+                            children: _categories.asMap().entries.map((entry) {
+                              return Column(
+                                children: [
+                                  _buildTabButton(entry.value, entry.key, isDesktop),
+                                  const SizedBox(height: 8),
+                                ],
+                              );
+                            }).toList(),
                           ),
                         ),
                     ],

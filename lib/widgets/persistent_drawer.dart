@@ -130,7 +130,7 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
           if (widget.isLoggedIn) ...[
             ListTile(
               leading: Icon(Icons.apartment, size: iconSize),
-              title: Text('Properties', style: TextStyle(fontSize: titleFontSize)),
+              title: Text('HOME', style: TextStyle(fontSize: titleFontSize)),
               contentPadding: listTilePadding,
               onTap: () => _navigateTo(
                 context,
@@ -143,10 +143,10 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
                 ),
               ),
             ),
-            // Add the new "Add Space" option here
+            // Add the new "Create a Post" option here
             ListTile(
               leading: Icon(Icons.add_circle_outline, size: iconSize),
-              title: Text('Add Space', style: TextStyle(fontSize: titleFontSize)),
+              title: Text('Create a Post', style: TextStyle(fontSize: titleFontSize)),
               contentPadding: listTilePadding,
               onTap: () => _navigateTo(context, const AddSpacePage()),
             ),
