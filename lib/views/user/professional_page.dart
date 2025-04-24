@@ -12,11 +12,20 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   bool _showOnboarding = false;
+  String _username = "phodawson"; // Default value
 
   @override
   void initState() {
     super.initState();
+    _loadUsername();
     _checkFirstVisit();
+  }
+
+  Future<void> _loadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _username = prefs.getString('name') ?? "phodawson";
+    });
   }
 
   Future<void> _checkFirstVisit() async {
@@ -28,12 +37,11 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
         _showOnboarding = true;
       });
       await prefs.setBool('hasVisitedProfessionalPage', true);
-      // await prefs.setBool('hasVisitedProfessionalPage', false);
     }
   }
 
   void _nextPage() {
-    if (_currentPage < 2) {
+    if (_currentPage < 3) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -51,42 +59,93 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
     super.dispose();
   }
 
-  Widget _buildOnboardingSlide({
-    required String title,
-    required String description,
-    required String imagePath,
-    bool isLast = false,
-  }) {
+  Widget _buildOnboardingSlide({required String imagePath, bool isLast = false}) {
     return Container(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
+      color: Colors.white, // Changed from gradient to plain white background
+      child: Stack(
         children: [
-          Expanded(
+          Center(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final double maxHeight = constraints.maxHeight * 0.7; // Limit image height to 70% of the screen
+                return Image.asset(
+                  imagePath,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: maxHeight,
+                );
+              },
+            ),
+          ),
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
             child: Center(
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.contain,
+              child: ElevatedButton(
+                onPressed: _nextPage,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  elevation: 5,
+                ),
+                child: Text(
+                  isLast ? 'Get Started' : 'Continue',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ),
-          ElevatedButton(
-            onPressed: _nextPage,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 32,
-                vertical: 16,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-            ),
-            child: Text(
-              isLast ? 'Get Started' : 'Next',
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(IconData icon, String title, String subtitle, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: ListTile(
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          onTap: () {
+            // Add navigation logic here
+          },
+        ),
       ),
     );
   }
@@ -106,38 +165,43 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
               },
               children: [
                 _buildOnboardingSlide(
-                  title: 'Welcome to Professional Page',
-                  description: 'Discover a world of professional opportunities and connect with industry experts.',
                   imagePath: 'assets/prof/professional1.png',
                 ),
                 _buildOnboardingSlide(
-                  title: 'Build Your Network',
-                  description: 'Connect with professionals in your field and expand your network.',
                   imagePath: 'assets/prof/professional2.png',
                 ),
                 _buildOnboardingSlide(
-                  title: 'All Professionals', 
-                  description: 'Where all professionals gather', 
                   imagePath: 'assets/prof/professional3.png',
                 ),
                 _buildOnboardingSlide(
-                  title: 'Get Started',
-                  description: 'Start exploring professional opportunities and take your career to the next level.',
                   imagePath: 'assets/prof/professional4.png',
                   isLast: true,
                 ),
               ],
             ),
             Positioned(
-              top: 40,
-              right: 20,
+              top: 60,
+              right: 24,
               child: TextButton(
                 onPressed: () {
                   setState(() {
                     _showOnboarding = false;
                   });
                 },
-                child: const Text('Skip'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Skip',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
               ),
             ),
             Positioned(
@@ -146,16 +210,22 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
               right: 0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (index) {
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: 8,
+                children: List.generate(4, (index) {
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 6),
+                    width: _currentPage == index ? 20 : 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                      shape: _currentPage == index 
+                          ? BoxShape.rectangle 
+                          : BoxShape.circle,
+                      borderRadius: _currentPage == index 
+                          ? BorderRadius.circular(4) 
+                          : null,
                       color: _currentPage == index
                           ? Colors.blue
-                          : Colors.grey,
+                          : Colors.grey.withOpacity(0.5),
                     ),
                   );
                 }),
@@ -167,68 +237,139 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('phodawson'),
+        title: Text(
+          _username,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         centerTitle: true,
         backgroundColor: Colors.blue,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          // Development-only button to reset onboarding preference
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.black),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('hasVisitedProfessionalPage', false);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Onboarding reset for testing')),
-              );
+              setState(() {
+                _showOnboarding = true;
+              });
             },
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              'my Portfolio',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 24),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'My Portfolio',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 30),
-          _buildMenuItem(Icons.inbox, 'Inbox'),
-          _buildMenuItem(Icons.home, 'To wear home'),
-          _buildMenuItem(Icons.settings, 'Settings'),
-          _buildMenuItem(Icons.person, 'About me'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuItem(IconData icon, String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        leading: Icon(icon, size: 28),
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 18),
-        ),
-        tileColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Manage your professional profile',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            _buildMenuItem(
+              Icons.inbox, 
+              'Inbox', 
+              'Check your messages', 
+              Colors.blue
+            ),
+            _buildMenuItem(
+              Icons.home, 
+              'Herevar', 
+              'View home collection', 
+              Colors.green
+            ),
+            _buildMenuItem(
+              Icons.settings, 
+              'Settings', 
+              'Configure your preferences', 
+              Colors.orange
+            ),
+            _buildMenuItem(
+              Icons.person, 
+              'About Me', 
+              'Edit your profile', 
+              Colors.purple
+            ),
+            const SizedBox(height: 40),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 2,
+                      blurRadius: 8,
+                      offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.help_outline, color: Colors.blue, size: 28),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Need Help?',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Contact our support team for assistance',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right, color: Colors.grey),
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
