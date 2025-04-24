@@ -108,7 +108,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title, String subtitle, Color color) {
+  Widget _buildMenuItem(IconData icon, String title, String subtitle, Color color, {VoidCallback? onTap}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Card(
@@ -142,9 +142,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
           ),
           trailing: const Icon(Icons.chevron_right, color: Colors.grey),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          onTap: () {
-            // Add navigation logic here
-          },
+          onTap: onTap,
         ),
       ),
     );
@@ -304,7 +302,10 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
               Icons.home, 
               'Herevar', 
               'View home collection', 
-              Colors.green
+              Colors.green,
+              onTap: () {
+                Navigator.pushNamed(context, '/propertyListScreen');
+              },
             ),
             _buildMenuItem(
               Icons.settings, 
