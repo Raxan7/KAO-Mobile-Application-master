@@ -28,6 +28,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
         _showOnboarding = true;
       });
       await prefs.setBool('hasVisitedProfessionalPage', true);
+      // await prefs.setBool('hasVisitedProfessionalPage', false);
     }
   }
 
@@ -59,32 +60,15 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
     return Container(
       padding: const EdgeInsets.all(24.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset(
-            imagePath,
-            height: 200,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(height: 32),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Center(
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.contain,
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          Text(
-            description,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const Spacer(),
           ElevatedButton(
             onPressed: _nextPage,
             style: ElevatedButton.styleFrom(
@@ -124,17 +108,22 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
                 _buildOnboardingSlide(
                   title: 'Welcome to Professional Page',
                   description: 'Discover a world of professional opportunities and connect with industry experts.',
-                  imagePath: 'assets/images/professional1.png',
+                  imagePath: 'assets/prof/professional1.png',
                 ),
                 _buildOnboardingSlide(
                   title: 'Build Your Network',
                   description: 'Connect with professionals in your field and expand your network.',
-                  imagePath: 'assets/images/professional2.png',
+                  imagePath: 'assets/prof/professional2.png',
+                ),
+                _buildOnboardingSlide(
+                  title: 'All Professionals', 
+                  description: 'Where all professionals gather', 
+                  imagePath: 'assets/prof/professional3.png',
                 ),
                 _buildOnboardingSlide(
                   title: 'Get Started',
                   description: 'Start exploring professional opportunities and take your career to the next level.',
-                  imagePath: 'assets/images/professional3.png',
+                  imagePath: 'assets/prof/professional4.png',
                   isLast: true,
                 ),
               ],
@@ -184,6 +173,25 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
         centerTitle: true,
         backgroundColor: Colors.blue,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        actions: [
+          // Development-only button to reset onboarding preference
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black),
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('hasVisitedProfessionalPage', false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Onboarding reset for testing')),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

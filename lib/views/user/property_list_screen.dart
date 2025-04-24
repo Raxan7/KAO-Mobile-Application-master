@@ -181,7 +181,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
       appBar: !isDesktop && !kIsWeb
           ? AppBar(
               automaticallyImplyLeading: true,
-              title: Container(
+              title: SizedBox(
                 width: double.infinity,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
