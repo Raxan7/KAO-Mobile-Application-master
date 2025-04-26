@@ -10,6 +10,8 @@ import '../views/user/user_profile.dart';  // Import User Profile Page
 import '../views/user/settings_page.dart'; // Import Settings Page
 import '../views/user/professional_page.dart';
 import '../views/user/add_space_page.dart'; // Import the AddSpacePage
+import 'package:url_launcher/url_launcher.dart'; // Add this import for launching URLs
+
 // Import SpacesListPage
 
 class PersistentDrawer extends StatefulWidget {
@@ -64,6 +66,21 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
       context,
       MaterialPageRoute(builder: (context) => page),
     );
+  }
+
+  // Function to launch WhatsApp with feedback message
+  Future<void> _sendFeedback() async {
+    const phoneNumber = '+255620148031';
+    const message = 'Hello, I have feedback about the Kao App: ';
+    final url = 'https://wa.me/$phoneNumber?text=${Uri.encodeFull(message)}';
+    
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not launch WhatsApp')),
+      );
+    }
   }
 
   @override
@@ -197,6 +214,20 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
               title: Text('Professional Page', style: TextStyle(fontSize: titleFontSize)),
               contentPadding: listTilePadding,
               onTap: () => _navigateTo(context, const ProfessionalPage()),
+            ),
+
+            // Feedback Section
+            const Divider(),
+            ListTile(
+              leading: Icon(Icons.feedback, size: iconSize, color: Colors.orange),
+              title: Text('Send Feedback', style: TextStyle(
+                fontSize: titleFontSize,
+                color: Colors.orange,
+              )),
+              contentPadding: listTilePadding,
+              onTap: _sendFeedback,
+              subtitle: Text('Report issues or suggest improvements', 
+                style: TextStyle(fontSize: isDesktop ? 14.0 : 12.0)),
             ),
 
             // TEMPORARY: Spaces List Page
