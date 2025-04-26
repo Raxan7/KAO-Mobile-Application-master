@@ -70,8 +70,8 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
 
   // Function to launch WhatsApp with feedback message
   Future<void> _sendFeedback() async {
-    const phoneNumber = '+255620148031';
-    const message = 'Hello, I have feedback about the Kao App: ';
+    const phoneNumber = '+255765621493';
+    const message = 'Hello, I have feedback about herevar.com: ';
     final url = 'https://wa.me/$phoneNumber?text=${Uri.encodeFull(message)}';
     
     if (await canLaunchUrl(Uri.parse(url))) {
