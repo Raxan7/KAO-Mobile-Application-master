@@ -10,6 +10,9 @@ import '../models/property.dart';
 import '../models/user_property.dart';
 import '../models/space.dart'; 
 import '../models/space_category.dart';
+import 'package:flutter/foundation.dart'; // Import foundation.dart for kIsWeb
+import 'dart:io'; // Import dart:io for File class
+import 'package:path_provider/path_provider.dart'; // Import path_provider for getTemporaryDirectory
 import '../utils/constants.dart';
 
 class ApiService {
@@ -1023,24 +1026,73 @@ class ApiService {
     }
   }
 
-  static Future<void> uploadSpaceMedia(String spaceId, String mediaType, String mediaData, bool isBase64) async {
-    final uri = Uri.parse('$baseUrl/spaces/$spaceId/media');
-    final request = http.MultipartRequest('POST', uri);
+  static Future<Map<String, dynamic>> uploadSpaceMedia(
+    String spaceId, 
+    String mediaType, 
+    dynamic fileData, // Can be File, Uint8List, or String path
+    bool isThumbnail,
+  ) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/user/upload_space_media.php'),
+      );
 
-    request.fields['media_type'] = mediaType;
+      // Add required fields
+      request.fields['space_id'] = spaceId;
+      request.fields['media_type'] = mediaType;
+      request.fields['thumb'] = isThumbnail ? '1' : '0';
 
-    if (isBase64) {
-      // Handle base64 image upload
-      request.fields['media_data'] = mediaData;
-      request.fields['is_base64'] = 'true';
-    } else {
-      // Handle file path upload
-      request.files.add(await http.MultipartFile.fromPath('media_file', mediaData));
-    }
+      // Handle different file types
+      if (fileData is File) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'media_file',
+          fileData.path,
+        ));
+      } else if (fileData is Uint8List) {
+        if (kIsWeb) {
+          // For web - convert bytes directly
+          request.files.add(http.MultipartFile.fromBytes(
+            'media_file',
+            fileData,
+            filename: 'space_media_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          ));
+        } else {
+          // For mobile - save to temp file first
+          final tempFile = File('${(await getTemporaryDirectory()).path}/temp_${DateTime.now().millisecondsSinceEpoch}.jpg');
+          await tempFile.writeAsBytes(fileData);
+          request.files.add(await http.MultipartFile.fromPath(
+            'media_file',
+            tempFile.path,
+          ));
+          await tempFile.delete();
+        }
+      } else if (fileData is String) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'media_file',
+          fileData,
+        ));
+      } else {
+        throw ArgumentError('Unsupported file type');
+      }
 
-    final response = await request.send();
-    if (response.statusCode != 200) {
-      throw Exception('Failed to upload media');
+      // Send the request
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}: $responseBody');
+      }
+
+      final result = jsonDecode(responseBody);
+      if (result['status'] != 'success') {
+        throw Exception(result['message'] ?? 'Upload failed');
+      }
+
+      return result;
+    } catch (e) {
+      print('Error uploading space media: $e');
+      throw Exception('Failed to upload space media: $e');
     }
   }
 

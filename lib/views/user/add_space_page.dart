@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert'; // Add this import
+import 'package:path_provider/path_provider.dart'; // Import path_provider
 import '../../services/api_service.dart';
 import '../../models/space_category.dart';
 import 'spaces_list_page.dart'; // Import SpacesListPage
@@ -84,21 +85,28 @@ class _AddSpacePageState extends State<AddSpacePage> {
   }
 
   Future<void> _pickImage() async {
-    if (kIsWeb) {
-      // For web, use pickMultiImage and store as Uint8List
+    try {
       final pickedFiles = await _picker.pickMultiImage();
-      final imageBytes = await Future.wait(pickedFiles.map((file) async => await file.readAsBytes()));
-      setState(() {
-        _imageFiles.addAll(imageBytes);
-      });
-    } else {
-      // For mobile, use pickImage and store as File
-      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-      if (pickedFile != null) {
-        setState(() {
-          _imageFiles.add(File(pickedFile.path));
-        });
+      if (pickedFiles != null) {
+        for (var pickedFile in pickedFiles) {
+          if (kIsWeb) {
+            // For web
+            final bytes = await pickedFile.readAsBytes();
+            setState(() {
+              _imageFiles.add(bytes);
+            });
+          } else {
+            // For mobile
+            setState(() {
+              _imageFiles.add(File(pickedFile.path));
+            });
+          }
+        }
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick image: $e')),
+      );
     }
   }
 
@@ -124,11 +132,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
       try {
         final prefs = await SharedPreferences.getInstance();
         final userId = prefs.getString('userId');
-        final userName = prefs.getString('userName');
-        final userEmail = prefs.getString('userEmail');
-        final isLoggedIn = prefs.getBool('isLoggedIn');
-        onThemeChanged() {} // Replace with the actual callback
-
+        
         if (userId == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('User ID not found. Please log in again.')),
@@ -136,6 +140,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
           return;
         }
 
+        // Prepare space data
         final spaceData = {
           'user_id': userId,
           'category_id': _selectedCategory!.id,
@@ -147,24 +152,25 @@ class _AddSpacePageState extends State<AddSpacePage> {
           'website_url': _websiteUrlController.text,
         };
 
+        // Add space
         final response = await ApiService.addSpace(spaceData);
         if (response['status'] == 'success') {
           final spaceId = response['space_id'].toString();
 
-          // Upload all selected images
-          for (var imageFile in _imageFiles) {
+          // Upload images
+          for (var i = 0; i < _imageFiles.length; i++) {
             try {
-              if (imageFile is File) {
-                // Upload File directly
-                await ApiService.uploadSpaceMedia(spaceId, 'image', imageFile.path, false);
-              } else if (imageFile is Uint8List) {
-                // Convert Uint8List to base64 string for web
-                final base64Image = base64Encode(imageFile);
-                await ApiService.uploadSpaceMedia(spaceId, 'image', base64Image, true);
-              }
+              final isThumbnail = i == 0; // First image as thumbnail
+              await ApiService.uploadSpaceMedia(
+                spaceId,
+                'image',
+                _imageFiles[i], // Pass the file data directly
+                isThumbnail,
+              );
             } catch (e) {
+              print('Error uploading image ${i + 1}: $e');
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Failed to upload image: $e')),
+                SnackBar(content: Text('Failed to upload image ${i + 1}: ${e.toString()}')),
               );
             }
           }
@@ -173,15 +179,15 @@ class _AddSpacePageState extends State<AddSpacePage> {
             const SnackBar(content: Text('Space created successfully!')),
           );
 
-          Navigator.push(
+          Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (context) => SpacesListPage(
                 userId: userId,
-                userName: userName,
-                userEmail: userEmail,
-                isLoggedIn: isLoggedIn ?? false, // Provide a default value for isLoggedIn
-                onThemeChanged: onThemeChanged as Function(bool), // Explicitly cast to Function(bool)
+                userName: prefs.getString('userName'),
+                userEmail: prefs.getString('userEmail'),
+                isLoggedIn: prefs.getBool('isLoggedIn') ?? false,
+                onThemeChanged: (bool isDark) {}, // Add proper callback
               ),
             ),
           );
@@ -192,7 +198,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Error: ${e.toString()}')),
         );
       } finally {
         setState(() {
