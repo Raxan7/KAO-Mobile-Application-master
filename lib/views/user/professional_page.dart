@@ -13,12 +13,15 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
   int _currentPage = 0;
   bool _showOnboarding = false;
   String _username = "phodawson"; // Default value
+  String _bio = ""; // Placeholder for bio
 
   @override
   void initState() {
     super.initState();
     _loadUsername();
     _checkFirstVisit();
+    // TODO: Add function to fetch bio from API when ready
+    // _fetchBio();
   }
 
   Future<void> _loadUsername() async {
@@ -61,13 +64,13 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
 
   Widget _buildOnboardingSlide({required String imagePath, bool isLast = false}) {
     return Container(
-      color: Colors.white, // Changed from gradient to plain white background
+      color: Colors.white,
       child: Stack(
         children: [
           Center(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final double maxHeight = constraints.maxHeight * 0.7; // Limit image height to 70% of the screen
+                final double maxHeight = constraints.maxHeight * 0.7;
                 return Image.asset(
                   imagePath,
                   fit: BoxFit.contain,
@@ -268,7 +271,55 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 24),
+            // Bio placeholder at the very top
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'About Me',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _bio.isEmpty
+                        ? const Text(
+                            'Your professional bio will appear here once fetched from the API.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          )
+                        : Text(
+                            _bio,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Text(
@@ -291,7 +342,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
             _buildMenuItem(
               Icons.inbox, 
               'Inbox', 
