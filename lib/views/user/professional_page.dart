@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:kao_app/views/user/add_space_page.dart'; // Add this import
 
 class ProfessionalPage extends StatefulWidget {
   const ProfessionalPage({super.key});
@@ -13,7 +14,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
   int _currentPage = 0;
   bool _showOnboarding = false;
   String _username = "phodawson"; // Default value
-  String _bio = ""; // Placeholder for bio
+  final String _bio = ""; // Placeholder for bio
 
   @override
   void initState() {
@@ -356,6 +357,18 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
               Colors.green,
               onTap: () {
                 Navigator.pushNamed(context, '/propertyListScreen');
+              },
+            ),
+            _buildMenuItem(
+              Icons.add_circle_outline, 
+              'Create a Post', 
+              'Add a new property listing', 
+              Colors.red,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddSpacePage()),
+                );
               },
             ),
             _buildMenuItem(
