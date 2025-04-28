@@ -5,6 +5,7 @@ import 'space_detail_page.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../widgets/persistent_drawer.dart';
 import '../../utils/constants.dart';
+import '../../widgets/cards/space_card.dart';
 
 class SpacesListPage extends StatefulWidget {
   final String? categoryId;
@@ -79,6 +80,7 @@ class _SpacesListPageState extends State<SpacesListPage> {
     );
   }
 
+  // In SpacesListPage, replace the Card widget in _buildSpaceList with SpaceCard
   Widget _buildSpaceList(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 600;
 
@@ -102,75 +104,9 @@ class _SpacesListPageState extends State<SpacesListPage> {
               : const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemBuilder: (context, index) {
             final space = spaces[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Card(
-                margin: EdgeInsets.zero,
-                child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SpaceDetailPage(space: space),
-                      ),
-                    );
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Thumbnail image
-                      if (space.thumbnail != null)
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.25, // Adjust height dynamically
-                          width: double.infinity,
-                          child: Image.network(
-                            '$spaceImage/${space.thumbnail}',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Category and Subcategory
-                            Row(
-                              children: [
-                                Chip(label: Text(space.categoryName)),
-                                const SizedBox(width: 8),
-                                Chip(label: Text(space.subcategoryName)),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            // Title
-                            Text(
-                              space.title,
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            // Location
-                            if (space.location != null)
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on, size: 16),
-                                  const SizedBox(width: 4),
-                                  Text(space.location!),
-                                ],
-                              ),
-                            const SizedBox(height: 8),
-                            // Description excerpt
-                            Text(
-                              space.description.length > 100
-                                  ? '${space.description.substring(0, 100)}...'
-                                  : space.description,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            return SpaceCard(
+              space: space,
+              isDesktop: isDesktop,
             );
           },
         );

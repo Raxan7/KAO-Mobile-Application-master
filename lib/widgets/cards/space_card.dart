@@ -26,7 +26,6 @@ class SpaceCard extends StatefulWidget {
 class _SpaceCardState extends State<SpaceCard> {
   int _currentImageIndex = 0;
   Timer? _imageTimer;
-  static const String imageUrl = "$baseUrl/images/spaces/";
   String? profilePicUrl;
   String? username;
   String? currentUserId;
@@ -70,7 +69,7 @@ class _SpaceCardState extends State<SpaceCard> {
   Future<void> _fetchUserDetails() async {
     final String apiUrl =
         "$baseUrl/api/dalali/get_user_details.php?userId=${widget.space.userId}";
-    const String imageUrl = "$baseUrl/images/spaces/";
+    const String userImageUrl = "$baseUrl/images/users/";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -82,7 +81,7 @@ class _SpaceCardState extends State<SpaceCard> {
           if (mounted) {
             setState(() {
               profilePicUrl =
-                  imageUrl + (responseData['data']['profile_picture'] ?? '');
+                  userImageUrl + (responseData['data']['profile_picture'] ?? '');
               username = responseData['data']['name'] ?? 'Unknown User';
             });
           }
@@ -95,8 +94,7 @@ class _SpaceCardState extends State<SpaceCard> {
 
   String getTimeAgo(DateTime createdAt) {
     final now = DateTime.now();
-    final adjustedCreatedAt = createdAt.add(const Duration(hours: 8));
-    final difference = now.difference(adjustedCreatedAt);
+    final difference = now.difference(createdAt);
 
     if (difference.inMinutes < 120) {
       return "${difference.inMinutes} min ago";
@@ -135,6 +133,288 @@ class _SpaceCardState extends State<SpaceCard> {
     } catch (e) {
       debugPrint("Error fetching interaction counts: $e");
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = widget.isDesktop || screenWidth > 600;
+    final cardWidth = isLargeScreen ? screenWidth * 0.6 : screenWidth * 0.9;
+    final String timeAgo = getTimeAgo(widget.space.createdAt);
+
+    return Container(
+      width: cardWidth,
+      margin: EdgeInsets.symmetric(
+        vertical: isLargeScreen ? 16.0 : 8.0,
+        horizontal: isLargeScreen ? 0.0 : 8.0,
+      ),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SpaceDetailPage(space: widget.space,),
+            ),
+          );
+        },
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(isLargeScreen ? 20.0 : 16.0),
+        ),
+        elevation: isLargeScreen ? 8.0 : 4.0,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Profile Section
+            if (profilePicUrl != null && username != null)
+              Padding(
+                padding: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _navigateToProfile,
+                      child: CircleAvatar(
+                        radius: isLargeScreen ? 28 : 24,
+                        backgroundImage: NetworkImage(profilePicUrl!),
+                        onBackgroundImageError: (_, __) => const Icon(Icons.person),
+                        backgroundColor: Colors.grey.shade200,
+                      ),
+                    ),
+                    SizedBox(width: isLargeScreen ? 16 : 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _navigateToProfile,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              username!,
+                              style: TextStyle(
+                                fontSize: isLargeScreen ? 18 : 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              timeAgo,
+                              style: TextStyle(
+                                fontSize: isLargeScreen ? 14 : 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Category Chip
+                    Chip(
+                      label: Text(
+                        widget.space.categoryName,
+                        style: TextStyle(
+                          fontSize: isLargeScreen ? 14 : 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                      backgroundColor: Colors.blue,
+                    ),
+                  ],
+                ),
+              ),
+
+            // Image Section
+            if (widget.space.media.isNotEmpty)
+              AspectRatio(
+                aspectRatio: isLargeScreen ? 16/8 : 16/9,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      '$baseUrl/images/spaces/${widget.space.media[_currentImageIndex].mediaUrl}',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => 
+                        Container(color: Colors.grey[200]),
+                    ),
+                    if (widget.space.media.length > 1)
+                      Positioned(
+                        right: 12.0,
+                        bottom: 12.0,
+                        child: FloatingActionButton.small(
+                          heroTag: null,
+                          onPressed: _nextImage,
+                          child: const Icon(Icons.arrow_forward),
+                        ),
+                      ),
+                  ],
+                ),
+              )
+            else
+              AspectRatio(
+                aspectRatio: isLargeScreen ? 16/8 : 16/9,
+                child: Container(
+                  color: Colors.grey[200],
+                  child: const Center(
+                    child: Icon(Icons.image, size: 50, color: Colors.grey),
+                  ),
+                ),
+              ),
+
+            // Details Section
+            Padding(
+              padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.space.title,
+                    style: TextStyle(
+                      fontSize: isLargeScreen ? 20 : 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  // Subcategory Chip
+                  Chip(
+                    label: Text(
+                      widget.space.subcategoryName,
+                      style: TextStyle(
+                        fontSize: isLargeScreen ? 14 : 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                    backgroundColor: Colors.blue[300],
+                  ),
+                  const SizedBox(height: 12),
+                  if (widget.space.location != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.space.location!,
+                            style: TextStyle(
+                              fontSize: isLargeScreen ? 14 : 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Text(
+                    _getShortDescription(widget.space.description),
+                    style: TextStyle(
+                      fontSize: isLargeScreen ? 14 : 12,
+                    ),
+                  ),
+                  if (widget.space.description.split(' ').length > 12)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                        child: Text(_isExpanded ? "Show less" : "Read more"),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // Interaction Buttons
+            Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade300),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildInteractionButton(
+                      icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                      color: isLiked ? Colors.red : Colors.black,
+                      label: '$likes',
+                      onPressed: _likeSpace,
+                    ),
+                    _buildInteractionButton(
+                      icon: Icons.comment_outlined,
+                      color: Colors.blue,
+                      label: '$comments',
+                      onPressed: _showCommentsPopup,
+                    ),
+                    _buildInteractionButton(
+                      icon: Icons.share,
+                      color: Colors.green,
+                      label: '$shares',
+                      onPressed: _shareSpace,
+                    ),
+                    _buildInteractionButton(
+                      icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                      color: Colors.orange,
+                      label: '',
+                      onPressed: _bookmarkSpace,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ));
+  }
+
+  Widget _buildInteractionButton({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color),
+          if (label.isNotEmpty)
+            Text(
+              label,
+              style: TextStyle(color: color, fontSize: 12),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _nextImage() {
+    if (mounted) {
+      setState(() {
+        _currentImageIndex = (_currentImageIndex + 1) % widget.space.media.length;
+      });
+    }
+  }
+
+  void _showCommentsPopup() {
+    Fluttertoast.showToast(msg: "Comments section will be displayed");
+  }
+
+  void _navigateToProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfileBaseScreen(userId: widget.space.userId),
+      ),
+    );
+  }
+
+  String _getShortDescription(String description) {
+    final words = description.split(' ');
+    if (words.length <= 12 || _isExpanded) return description;
+    return '${words.take(12).join(' ')}...';
   }
 
   Future<void> _likeSpace() async {
@@ -231,301 +511,5 @@ class _SpaceCardState extends State<SpaceCard> {
   void dispose() {
     _imageTimer?.cancel();
     super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = widget.isDesktop || screenWidth > 600;
-    final cardWidth = isLargeScreen ? screenWidth * 0.6 : screenWidth * 0.9;
-    final String timeAgo = getTimeAgo(widget.space.createdAt);
-
-    return Container(
-      width: cardWidth,
-      margin: EdgeInsets.symmetric(
-        vertical: isLargeScreen ? 16.0 : 8.0,
-        horizontal: isLargeScreen ? 0.0 : 8.0,
-      ),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SpaceDetailPage(space: widget.space),
-            ),
-          );
-        },
-        child: Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(isLargeScreen ? 20.0 : 16.0),
-          ),
-          elevation: isLargeScreen ? 8.0 : 4.0,
-          shadowColor: Colors.black.withOpacity(0.2),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(isLargeScreen ? 20.0 : 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Profile Section
-                if (profilePicUrl != null && username != null)
-                  Padding(
-                    padding: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: _navigateToProfile,
-                          child: CircleAvatar(
-                            radius: isLargeScreen ? 28 : 24,
-                            backgroundImage: NetworkImage(profilePicUrl!),
-                            onBackgroundImageError: (_, __) => const Icon(Icons.person),
-                            backgroundColor: Colors.grey.shade200,
-                          ),
-                        ),
-                        SizedBox(width: isLargeScreen ? 16 : 12),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: _navigateToProfile,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  username!,
-                                  style: TextStyle(
-                                    fontSize: isLargeScreen ? 18 : 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  timeAgo,
-                                  style: TextStyle(
-                                    fontSize: isLargeScreen ? 14 : 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        // Category Chip
-                        Chip(
-                          label: Text(
-                            widget.space.categoryName,
-                            style: TextStyle(
-                              fontSize: isLargeScreen ? 14 : 12,
-                              color: Colors.white,
-                            ),
-                          ),
-                          backgroundColor: Colors.blue,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // Image Section
-                if (widget.space.media.isNotEmpty)
-                  AspectRatio(
-                    aspectRatio: isLargeScreen ? 16/8 : 16/9,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          '$imageUrl/${widget.space.media[_currentImageIndex].mediaUrl}',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => 
-                            Container(color: Colors.grey[200]),
-                        ),
-                        if (widget.space.media.length > 1)
-                          Positioned(
-                            right: 12.0,
-                            bottom: 12.0,
-                            child: FloatingActionButton.small(
-                              heroTag: null,
-                              onPressed: _nextImage,
-                              child: const Icon(Icons.arrow_forward),
-                            ),
-                          ),
-                      ],
-                    ),
-                  )
-                else
-                  AspectRatio(
-                    aspectRatio: isLargeScreen ? 16/8 : 16/9,
-                    child: Container(
-                      color: Colors.grey[200],
-                      child: const Center(
-                        child: Icon(Icons.image, size: 50, color: Colors.grey),
-                      ),
-                    ),
-                  ),
-
-                // Interaction Buttons Section
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(color: Colors.grey.shade300),
-                      bottom: BorderSide(color: Colors.grey.shade300),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildInteractionIcon(
-                          icon: isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: isLiked ? Colors.red : Colors.black,
-                          count: likes,
-                          onPressed: _likeSpace,
-                        ),
-                        _buildInteractionIcon(
-                          icon: Icons.comment_outlined,
-                          color: Colors.blue,
-                          count: comments,
-                          onPressed: _showCommentsPopup,
-                        ),
-                        _buildInteractionIcon(
-                          icon: Icons.share,
-                          color: Colors.green,
-                          count: shares,
-                          onPressed: _shareSpace,
-                        ),
-                        _buildInteractionIcon(
-                          icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                          color: Colors.orange,
-                          count: 0, // Bookmark doesn't have count
-                          onPressed: _bookmarkSpace,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Details Section
-                Padding(
-                  padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.space.title,
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 20 : 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      // Subcategory Chip
-                      Chip(
-                        label: Text(
-                          widget.space.subcategoryName,
-                          style: TextStyle(
-                            fontSize: isLargeScreen ? 14 : 12,
-                            color: Colors.white,
-                          ),
-                        ),
-                        backgroundColor: Colors.blue[300],
-                      ),
-                      const SizedBox(height: 12),
-                      if (widget.space.location != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                              const SizedBox(width: 4),
-                              Text(
-                                widget.space.location!,
-                                style: TextStyle(
-                                  fontSize: isLargeScreen ? 14 : 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      Text(
-                        _getShortDescription(widget.space.description),
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 14 : 12,
-                        ),
-                      ),
-                      if (widget.space.description.split(' ').length > 12)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () => setState(() => _isExpanded = !_isExpanded),
-                            child: Text(_isExpanded ? "Show less" : "Read more"),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInteractionIcon({
-    required IconData icon,
-    required Color color,
-    required int count,
-    required VoidCallback onPressed,
-  }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.transparent,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color),
-              const SizedBox(height: 4),
-              if (count > 0) Text('$count', style: TextStyle(color: color)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _nextImage() {
-    if (mounted) {
-      setState(() {
-        _currentImageIndex = (_currentImageIndex + 1) % widget.space.media.length;
-      });
-    }
-  }
-
-  void _showCommentsPopup() {
-    Fluttertoast.showToast(msg: "Comments section will be displayed");
-  }
-
-  void _navigateToProfile() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ProfileBaseScreen(userId: widget.space.userId),
-      ),
-    );
-  }
-
-  String _getShortDescription(String description) {
-    final decodedDescription = utf8.decode(description.runes.toList());
-    final words = decodedDescription.split(' ');
-    if (words.length <= 12 || _isExpanded) return decodedDescription;
-    return '${words.take(12).join(' ')}...';
   }
 }
