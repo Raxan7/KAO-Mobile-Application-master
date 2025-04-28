@@ -160,13 +160,6 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
                 ),
               ),
             ),
-            // Add the new "Create a Post" option here
-            ListTile(
-              leading: Icon(Icons.add_circle_outline, size: iconSize),
-              title: Text('Create a Post', style: TextStyle(fontSize: titleFontSize)),
-              contentPadding: listTilePadding,
-              onTap: () => _navigateTo(context, const AddSpacePage()),
-            ),
             ListTile(
               leading: Icon(Icons.message_rounded, size: iconSize),
               title: Text('My Enquiries', style: TextStyle(fontSize: titleFontSize)),
