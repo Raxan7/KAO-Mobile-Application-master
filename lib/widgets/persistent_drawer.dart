@@ -9,7 +9,7 @@ import '../views/login_page.dart';
 import '../views/user/user_profile.dart';  // Import User Profile Page
 import '../views/user/settings_page.dart'; // Import Settings Page
 import '../views/user/professional_page.dart';
-import '../views/user/add_space_page.dart'; // Import the AddSpacePage
+// Import the AddSpacePage
 import 'package:url_launcher/url_launcher.dart'; // Add this import for launching URLs
 
 // Import SpacesListPage

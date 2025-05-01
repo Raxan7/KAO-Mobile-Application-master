@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart'; // Add this import
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert'; // Add this import
-import 'package:path_provider/path_provider.dart'; // Import path_provider
+// Add this import
+// Import path_provider
 import '../../services/api_service.dart';
 import '../../models/space_category.dart';
 import 'spaces_list_page.dart'; // Import SpacesListPage
@@ -87,23 +87,21 @@ class _AddSpacePageState extends State<AddSpacePage> {
   Future<void> _pickImage() async {
     try {
       final pickedFiles = await _picker.pickMultiImage();
-      if (pickedFiles != null) {
-        for (var pickedFile in pickedFiles) {
-          if (kIsWeb) {
-            // For web
-            final bytes = await pickedFile.readAsBytes();
-            setState(() {
-              _imageFiles.add(bytes);
-            });
-          } else {
-            // For mobile
-            setState(() {
-              _imageFiles.add(File(pickedFile.path));
-            });
-          }
+      for (var pickedFile in pickedFiles) {
+        if (kIsWeb) {
+          // For web
+          final bytes = await pickedFile.readAsBytes();
+          setState(() {
+            _imageFiles.add(bytes);
+          });
+        } else {
+          // For mobile
+          setState(() {
+            _imageFiles.add(File(pickedFile.path));
+          });
         }
       }
-    } catch (e) {
+        } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to pick image: $e')),
       );

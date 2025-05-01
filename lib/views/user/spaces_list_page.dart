@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/space.dart';
 import '../../services/api_service.dart';
-import 'space_detail_page.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../widgets/persistent_drawer.dart';
-import '../../utils/constants.dart';
 import '../../widgets/cards/space_card.dart';
 
 class SpacesListPage extends StatefulWidget {
