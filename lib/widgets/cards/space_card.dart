@@ -208,16 +208,16 @@ class _SpaceCardState extends State<SpaceCard> {
                       ),
                     ),
                     // Category Chip
-                    Chip(
-                      label: Text(
-                        widget.space.categoryName,
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 14 : 12,
-                          color: Colors.white,
-                        ),
-                      ),
-                      backgroundColor: Colors.blue,
-                    ),
+                    // Chip(
+                    //   label: Text(
+                    //     widget.space.categoryName,
+                    //     style: TextStyle(
+                    //       fontSize: isLargeScreen ? 14 : 12,
+                    //       color: Colors.white,
+                    //     ),
+                    //   ),
+                    //   backgroundColor: Colors.blue,
+                    // ),
                   ],
                 ),
               ),
