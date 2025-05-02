@@ -74,7 +74,7 @@ class _SpaceCardState extends State<SpaceCard> {
     try {
       final response = await http.get(Uri.parse(apiUrl));
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> responseData = json.decode(response.body);
 
         if (responseData['success'] == true) {
@@ -120,7 +120,7 @@ class _SpaceCardState extends State<SpaceCard> {
     try {
       final response = await http.get(Uri.parse(apiUrl));
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(response.body);
 
         setState(() {
@@ -431,7 +431,7 @@ class _SpaceCardState extends State<SpaceCard> {
         body: json.encode(requestBody),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> responseData = json.decode(response.body);
 
         if (responseData['success'] == true) {
@@ -464,7 +464,7 @@ class _SpaceCardState extends State<SpaceCard> {
         body: json.encode(requestBody),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         if (responseData['success'] == true) {
           setState(() {
@@ -493,7 +493,7 @@ class _SpaceCardState extends State<SpaceCard> {
         body: json.encode(requestBody),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         if (responseData['success'] == true) {
           setState(() {
