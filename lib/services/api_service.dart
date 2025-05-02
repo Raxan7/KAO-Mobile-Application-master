@@ -1274,21 +1274,33 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> uploadBusinessLogo(int userId, File image) async {
+  Future<Map<String, dynamic>> uploadBusinessLogo(int userId, dynamic image) async {
     print('Uploading business logo for user $userId');
-    print('Image path: ${image.path}');
     try {
       var url = '$baseUrl/upload_business_logo.php';
       print('Making multipart request to: $url');
-      
+
       var request = http.MultipartRequest('POST', Uri.parse(url));
       request.fields['user_id'] = userId.toString();
-      request.files.add(await http.MultipartFile.fromPath('logo', image.path));
+
+      if (image is File) {
+        // Handle file upload for mobile/desktop
+        request.files.add(await http.MultipartFile.fromPath('logo', image.path));
+      } else if (image is Uint8List) {
+        // Handle byte array upload for web
+        request.files.add(http.MultipartFile.fromBytes(
+          'logo',
+          image,
+          filename: 'business_logo_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ));
+      } else {
+        throw ArgumentError('Unsupported image type');
+      }
 
       print('Sending logo upload request...');
       final response = await request.send();
       print('Upload response status: ${response.statusCode}');
-      
+
       final responseBody = await response.stream.bytesToString();
       print('Upload response body: $responseBody');
 

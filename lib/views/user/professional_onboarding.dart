@@ -98,6 +98,20 @@ class _ProfessionalOnboardingState extends State<ProfessionalOnboarding> {
           setState(() => _isSubmitting = false);
           return;
         }
+      } else if (kIsWeb && _webImageBytes != null) {
+        try {
+          final uploadResult = await _apiService.uploadBusinessLogo(
+            widget.userId,
+            _webImageBytes!,
+          );
+          logoUrl = uploadResult['url'];
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error uploading logo: $e')),
+          );
+          setState(() => _isSubmitting = false);
+          return;
+        }
       }
 
       final businessProfile = {
