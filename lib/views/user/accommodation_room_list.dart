@@ -47,7 +47,7 @@ class _AccommodationRoomListState extends State<AccommodationRoomList> {
       Uri.parse('$apiUrl/${widget.accommodationType}_rooms.php?${widget.accommodationType}_id=${widget.accommodationId}'), // Generalized API
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       List roomsJson = json.decode(response.body);
       setState(() {
         _rooms = roomsJson.map((room) => Room.fromJson(room)).toList();

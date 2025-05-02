@@ -90,7 +90,7 @@ class _DetailedEnquiriesPageState extends State<DetailedEnquiriesPage> {
     try {
       final String apiUrl = "$baseUrl/api/dalali/get_user_details.php?userId=$userId";
       final response = await http.get(Uri.parse(apiUrl));
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body);
         if (responseData['success'] == true) {
           if (mounted) {
