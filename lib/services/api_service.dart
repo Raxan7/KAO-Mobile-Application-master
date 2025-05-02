@@ -22,7 +22,7 @@ class ApiService {
   Future<List<Hotel>> fetchHotels() async {
     final response = await http.get(Uri.parse('$baseUrl/hotels.php'));
     // print(response.body);
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       List<dynamic> data = json.decode(response.body);
       return data.map((hotel) => Hotel.fromJson(hotel)).toList();
     } else {
@@ -32,7 +32,7 @@ class ApiService {
 
   Future<List<Motel>> fetchMotels() async {
     final response = await http.get(Uri.parse('$baseUrl/motels.php'));
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       List<dynamic> data = json.decode(response.body);
       return data.map((motel) => Motel.fromJson(motel)).toList();
     } else {
@@ -42,7 +42,7 @@ class ApiService {
 
   Future<List<Hostel>> fetchHostels() async {
     final response = await http.get(Uri.parse('$baseUrl/hostels.php'));
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       List<dynamic> data = json.decode(response.body);
       return data.map((hostel) => Hostel.fromJson(hostel)).toList();
     } else {
@@ -52,7 +52,7 @@ class ApiService {
 
   Future<List<Lodge>> fetchLodges() async {
     final response = await http.get(Uri.parse('$baseUrl/lodges.php'));
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       List<dynamic> data = json.decode(response.body);
       return data.map((lodge) => Lodge.fromJson(lodge)).toList();
     } else {
@@ -72,7 +72,7 @@ class ApiService {
       },
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return json.decode(response.body); // Return the response body
     } else {
       throw Exception('Failed to login'); // Handle errors
@@ -90,7 +90,7 @@ class ApiService {
       },
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return json.decode(response.body); // Return the response as a Map
     } else {
       throw Exception('Failed to load user profile'); // Handle errors
@@ -105,7 +105,7 @@ class ApiService {
           '$baseUrl/${accommodationType}_room_detail.php?room_id=$roomId'), // Room details API endpoint
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return json.decode(response.body); // Return room details as a Map
     } else {
       throw Exception('Failed to load room details'); // Handle errors
@@ -116,7 +116,7 @@ class ApiService {
   Future<List<Booking>> fetchUserBookings(String userId) async {
     final response =
         await http.get(Uri.parse('$baseUrl/user_bookings.php?user_id=$userId'));
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       Map<String, dynamic> data = json.decode(response.body);
 
       if (data['status']) {
@@ -146,7 +146,7 @@ class ApiService {
       },
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return json.decode(response.body);
     } else {
       throw Exception('Failed to check availability');
@@ -172,7 +172,7 @@ class ApiService {
       },
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final Map<String, dynamic> result = json.decode(response.body);
       if (result['status'] == 'success') {
         return result;
@@ -213,7 +213,7 @@ class ApiService {
       },
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return json.decode(response.body);
     } else {
       throw Exception('Failed to create booking');
@@ -248,7 +248,7 @@ class ApiService {
       },
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return json.decode(response.body);
     } else {
       throw Exception('Failed to register user');
@@ -270,7 +270,7 @@ class ApiService {
           propertyData), // jsonEncode can handle both strings and numbers
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to add property');
@@ -297,7 +297,7 @@ class ApiService {
       final response = await request.send();
 
       // Check if the response was successful
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         // Decode the response body
         final responseBody = await response.stream.bytesToString();
         print("Everything is going great $responseBody");
@@ -334,7 +334,7 @@ class ApiService {
       );
 
       // Check the response status
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final responseBody = jsonDecode(response.body);
         return responseBody;
       } else {
@@ -359,7 +359,7 @@ class ApiService {
       headers: {"Content-Type": "application/json"},
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final result = jsonDecode(response.body);
       if (result['success'] == true) {
         print("Message deleted successfully");
@@ -383,7 +383,7 @@ class ApiService {
       body: jsonEncode({'property_id': propertyId, ...updatedData}),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to update property');
@@ -401,7 +401,7 @@ class ApiService {
       body: jsonEncode({'property_id': propertyId}),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to delete property');
@@ -411,7 +411,7 @@ class ApiService {
   static Future<List<Property>> fetchProperties(String userId) async {
     final response = await http
         .get(Uri.parse('$baseUrl/dalali/fetch_properties.php?user_id=$userId'));
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       List<dynamic> data = json.decode(response.body);
       return data.map((item) => Property.fromJson(item)).toList();
     } else {
@@ -428,7 +428,7 @@ class ApiService {
       final response = await http.get(url);
       print('Response body: ${response.body}');
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
         return {
           'for_sale': int.tryParse(data['for_sale']?.toString() ?? '0') ?? 0,
@@ -449,7 +449,7 @@ class ApiService {
     final response = await http.get(Uri.parse(
         '$baseUrl/dalali/get_unreplied_enquiries.php?user_id=$userId'));
     print(response.body);
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to load unreplied enquiries');
@@ -460,7 +460,7 @@ class ApiService {
   static Future<List<dynamic>> fetchAllEnquiriesDalali(int dalaliId) async {
     final response = await http.get(
         Uri.parse('$baseUrl/dalali/get_all_enquiries.php?dalali_id=$dalaliId'));
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to load all enquiries');
@@ -472,7 +472,7 @@ class ApiService {
     final response = await http
         .get(Uri.parse('$baseUrl/user/get_all_enquiries.php?user_id=$userId'));
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       // ✅ Decode response body properly using UTF-8
       final String decodedBody = utf8.decode(response.bodyBytes);
       final jsonData = jsonDecode(decodedBody);
@@ -497,7 +497,7 @@ class ApiService {
 
     final response = await http.get(Uri.parse(url));
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final decodedResponse = json.decode(response.body);
 
       // Ensure we extract the list correctly
@@ -522,7 +522,7 @@ class ApiService {
     final response = await http
         .get(Uri.parse('$apiUrl/property_detail.php?property_id=$propertyId'));
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return json.decode(response.body);
     } else {
       throw Exception('Failed to load property details');
@@ -539,7 +539,7 @@ class ApiService {
 
     // // print(response.body);
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return List<Map<String, dynamic>>.from(json.decode(response.body));
     } else {
       throw Exception('Failed to load messages');
@@ -570,7 +570,7 @@ class ApiService {
       }),
     );
 
-    if (response.statusCode != 200) {
+    if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Failed to send message');
     }
   }
@@ -602,7 +602,7 @@ class ApiService {
     // // print('Response status: ${response.statusCode}');
     // // print('Response body: ${response.body}');
 
-    if (response.statusCode != 200) {
+    if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Failed to send message');
     }
   }
@@ -615,7 +615,7 @@ class ApiService {
     print(response.statusCode);
     print(response.body);
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final data = json.decode(response.body);
       if (data['success']) {
         return data['unreplied_count'] ?? 0;
@@ -636,7 +636,7 @@ class ApiService {
       }),
     );
 
-    if (response.statusCode != 200) {
+    if (response.statusCode != 200 && response.statusCode != 201) {
       // // print(response.body);
       throw Exception('Failed to send reaction');
     }
@@ -654,7 +654,7 @@ class ApiService {
 
     // // print(response.body);
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       // Parse the JSON response
       return List<Map<String, dynamic>>.from(json.decode(response.body));
     } else {
@@ -668,7 +668,7 @@ class ApiService {
       final response = await http.get(Uri.parse(
           '$apiUrl/dalali/enquiries/fetch_user_details.php?user_id=$userId'));
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         // Decode the JSON response
         final data = json.decode(response.body);
         return data;
@@ -690,7 +690,7 @@ class ApiService {
       body: {'message_id': messageId.toString()},
     );
 
-    if (response.statusCode != 200) {
+    if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Failed to remove reaction');
     }
   }
@@ -708,7 +708,7 @@ class ApiService {
         },
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else {
         return {
@@ -740,7 +740,7 @@ class ApiService {
         }),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body); // Assuming JSON response
       } else {
         return {"status": "error", "message": "Failed to create notification"};
@@ -758,7 +758,7 @@ class ApiService {
     try {
       final response = await http.get(url);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         if (data['status'] == 'success') {
           return List<Map<String, dynamic>>.from(data['notifications']);
@@ -789,7 +789,7 @@ class ApiService {
         },
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final responseBody = jsonDecode(response.body);
         if (responseBody['success'] == true) {
           print('Notification marked as read.');
@@ -819,7 +819,7 @@ class ApiService {
         },
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final responseBody = jsonDecode(response.body);
         if (responseBody['success'] == true) {
           return responseBody['data'] as Map<String, dynamic>;
@@ -844,7 +844,7 @@ class ApiService {
 
     try {
       final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final notifications = (data['notifications'] as List)
             .map((notification) => NotificationModel.fromJson(notification))
@@ -867,7 +867,7 @@ class ApiService {
       body: jsonEncode(data),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return true;
     } else {
       throw Exception('Failed to update broker details');
@@ -881,7 +881,7 @@ class ApiService {
     try {
       final response = await http.get(Uri.parse(url));
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> responseData = json.decode(response.body);
 
         if (responseData['success'] == true) {
@@ -908,7 +908,7 @@ class ApiService {
 
     final response = await http.get(Uri.parse(url));
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final decodedResponse = json.decode(response.body);
 
       // Extract properties from response
@@ -934,7 +934,7 @@ class ApiService {
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
       
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
           print('Successfully fetched ${(data['data'] as List).length} categories');
@@ -974,7 +974,7 @@ class ApiService {
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
           print('Successfully fetched ${(data['data'] as List).length} spaces');
@@ -1007,7 +1007,7 @@ class ApiService {
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final result = jsonDecode(response.body);
         if (result['status'] == 'success') {
           print('Successfully added space with ID: ${result['space_id']}');
@@ -1080,7 +1080,7 @@ class ApiService {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
-      if (response.statusCode != 200) {
+      if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception('HTTP ${response.statusCode}: $responseBody');
       }
 
@@ -1108,7 +1108,7 @@ class ApiService {
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final result = jsonDecode(response.body);
         if (result['status'] == 'success') {
           print('Successfully updated space $spaceId');
@@ -1138,7 +1138,7 @@ class ApiService {
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final result = jsonDecode(response.body);
         if (result['status'] == 'success') {
           print('Successfully deleted space $spaceId');
@@ -1154,6 +1154,153 @@ class ApiService {
       print('Exception in deleteSpace: $e');
       print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
       rethrow;
+    }
+  }
+
+  // Add these methods to your ApiService class
+
+  // Add these methods to your ApiService class
+  Future<bool> checkBusinessProfileExists(int userId) async {
+    print('Checking if business profile exists for user $userId');
+    try {
+      final url = '$baseUrl/business_profiles.php?action=exists&user_id=$userId';
+      print('Making request to: $url');
+      
+      final response = await http.get(Uri.parse(url));
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        print('Exists check result: ${data['exists']}');
+        return data['exists'] == true || data['exists'] == 'true';
+      }
+      print('Request failed with status ${response.statusCode}');
+      return false;
+    } catch (e) {
+      print('Error in checkBusinessProfileExists: $e');
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> getBusinessProfile(int userId) async {
+    print('Getting business profile for user $userId');
+    try {
+      final url = '$baseUrl/business_profiles.php?user_id=$userId';
+      print('Making request to: $url');
+      
+      final response = await http.get(Uri.parse(url));
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          print('Successfully retrieved profile');
+          return data['data'];
+        } else {
+          print('API returned error: ${data['message']}');
+          throw Exception(data['message'] ?? 'Business profile not found');
+        }
+      } else {
+        print('Request failed with status ${response.statusCode}');
+        throw Exception('Failed to load business profile');
+      }
+    } catch (e) {
+      print('Error in getBusinessProfile: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> createBusinessProfile(int userId, Map<String, dynamic> profile) async {
+    print('Creating business profile for user $userId');
+    print('Profile data: $profile');
+    try {
+      const url = '$baseUrl/business_profiles.php';
+      print('Making POST request to: $url');
+      
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'action': 'create',
+          'user_id': userId,
+          ...profile
+        }),
+      );
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        print('Request failed with status ${response.statusCode}');
+        throw Exception('Failed to create business profile');
+      }
+    } catch (e) {
+      print('Error in createBusinessProfile: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> updateBusinessProfile(int userId, Map<String, dynamic> profile) async {
+    print('Updating business profile for user $userId');
+    print('Profile data: $profile');
+    try {
+      const url = '$baseUrl/business_profiles.php';
+      print('Making PUT request to: $url');
+      
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'action': 'update',
+          'user_id': userId,
+          ...profile
+        }),
+      );
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        print('Request failed with status ${response.statusCode}');
+        throw Exception('Failed to update business profile');
+      }
+    } catch (e) {
+      print('Error in updateBusinessProfile: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> uploadBusinessLogo(int userId, File image) async {
+    print('Uploading business logo for user $userId');
+    print('Image path: ${image.path}');
+    try {
+      var url = '$baseUrl/upload_business_logo.php';
+      print('Making multipart request to: $url');
+      
+      var request = http.MultipartRequest('POST', Uri.parse(url));
+      request.fields['user_id'] = userId.toString();
+      request.files.add(await http.MultipartFile.fromPath('logo', image.path));
+
+      print('Sending logo upload request...');
+      final response = await request.send();
+      print('Upload response status: ${response.statusCode}');
+      
+      final responseBody = await response.stream.bytesToString();
+      print('Upload response body: $responseBody');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(responseBody);
+      } else {
+        print('Logo upload failed with status ${response.statusCode}');
+        throw Exception('Failed to upload logo: $responseBody');
+      }
+    } catch (e) {
+      print('Error in uploadBusinessLogo: $e');
+      throw Exception('Error uploading logo: $e');
     }
   }
 }
