@@ -19,7 +19,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _pincodeController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _cpasswordController = TextEditingController();
@@ -39,7 +38,7 @@ class _RegisterPageState extends State<RegisterPage> {
         email: _emailController.text,
         phonenum: _phoneController.text,
         address: _addressController.text,
-        pincode: _pincodeController.text,
+        pincode: '0', // Default value for pincode
         dob: _dobController.text,
         pass: _passwordController.text,
         cpass: _cpasswordController.text,
@@ -115,12 +114,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: _addressController,
                       label: 'Address',
                       validator: (value) => value!.isEmpty ? 'Please enter your address' : null,
-                      isDesktop: isDesktop,
-                    ),
-                    _buildTextField(
-                      controller: _pincodeController,
-                      label: 'Pincode',
-                      validator: (value) => value!.isEmpty ? 'Please enter your pincode' : null,
                       isDesktop: isDesktop,
                     ),
                     _buildDateField(isDesktop),
