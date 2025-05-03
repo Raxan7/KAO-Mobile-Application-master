@@ -19,8 +19,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String? userId;
-  String? userName; // Change to nullable
-  String? userEmail; // Change to nullable
+  String? userName;
+  String? userEmail;
   bool isLoggedIn = false; // Track user login state
 
   int _selectedIndex = 0; // Track the selected index of bottom navigation
