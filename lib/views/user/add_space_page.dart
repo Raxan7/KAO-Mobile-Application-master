@@ -22,7 +22,6 @@ class _AddSpacePageState extends State<AddSpacePage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController();
   final TextEditingController _contactInfoController = TextEditingController();
   final TextEditingController _websiteUrlController = TextEditingController();
 
@@ -38,11 +37,20 @@ class _AddSpacePageState extends State<AddSpacePage> {
   SpaceSubcategory? _selectedSubcategory;
   List<SpaceSubcategory> _filteredSubcategories = [];
 
+  final Map<String, String> _categoryMapping = {
+    'Home': '0',
+    'Education': '1',
+    'Creators': '2',
+    'Technology': '3',
+    'News': '4',
+    'Discover': '5',
+  };
+
   @override
   void initState() {
     super.initState();
     _loadCategories();
-    _getCurrentLocation();
+    _loadProfessionalData(); // Load professional data
     _timer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
       if (mounted) {
         setState(() {
@@ -57,7 +65,6 @@ class _AddSpacePageState extends State<AddSpacePage> {
     _timer?.cancel();
     _titleController.dispose();
     _descriptionController.dispose();
-    _locationController.dispose();
     _contactInfoController.dispose();
     _websiteUrlController.dispose();
     super.dispose();
@@ -76,12 +83,37 @@ class _AddSpacePageState extends State<AddSpacePage> {
     }
   }
 
-  Future<void> _getCurrentLocation() async {
-    // Implement location fetching similar to AddPropertyPage
-    // This is a simplified version
-    setState(() {
-      _locationController.text = 'Current Location';
-    });
+  Future<void> _loadProfessionalData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final categoryId = prefs.getString('category_id');
+      final location = prefs.getString('business_location');
+      final websiteUrl = prefs.getString('business_website');
+      final contactInfo = prefs.getString('business_phone'); // Fetch contact info
+
+      print('Fetched category ID: ${_categoryMapping[categoryId]}'); // Debugging print statement
+
+      if (categoryId != null) {
+        // Ensure categories are loaded before accessing them
+        if (_categories.isEmpty) {
+          await _loadCategories();
+        }
+
+        setState(() {
+          final categoryName = _categoryMapping[categoryId];
+          _selectedCategory = _categories.firstWhere((category) => category.id == categoryName);
+          _filteredSubcategories = _selectedCategory?.subcategories ?? [];
+          _websiteUrlController.text = websiteUrl ?? '';
+          _contactInfoController.text = contactInfo ?? ''; // Set contact info
+        });
+
+        print('Mapped category ID: ${_categoryMapping[_selectedCategory?.name ?? '']}'); // Debugging print statement
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load professional data: $e')),
+      );
+    }
   }
 
   Future<void> _pickImage() async {
@@ -101,7 +133,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
           });
         }
       }
-        } catch (e) {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to pick image: $e')),
       );
@@ -145,7 +177,6 @@ class _AddSpacePageState extends State<AddSpacePage> {
           'subcategory_id': _selectedSubcategory!.id,
           'title': _titleController.text,
           'description': _descriptionController.text,
-          'location': _locationController.text,
           'contact_info': _contactInfoController.text,
           'website_url': _websiteUrlController.text,
         };
@@ -225,52 +256,6 @@ class _AddSpacePageState extends State<AddSpacePage> {
               ),
               const SizedBox(height: 20),
 
-              // Category Dropdown
-              DropdownButtonFormField<SpaceCategory>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
-                ),
-                items: _categories.map((category) {
-                  return DropdownMenuItem<SpaceCategory>(
-                    value: category,
-                    child: Text(category.name),
-                  );
-                }).toList(),
-                onChanged: (category) {
-                  setState(() {
-                    _selectedCategory = category;
-                    _selectedSubcategory = null;
-                    _filteredSubcategories = category?.subcategories ?? [];
-                  });
-                },
-                validator: (value) => value == null ? 'Please select a category' : null,
-              ),
-              const SizedBox(height: 16),
-
-              // Subcategory Dropdown
-              DropdownButtonFormField<SpaceSubcategory>(
-                value: _selectedSubcategory,
-                decoration: const InputDecoration(
-                  labelText: 'Subcategory',
-                  border: OutlineInputBorder(),
-                ),
-                items: _filteredSubcategories.map((subcategory) {
-                  return DropdownMenuItem<SpaceSubcategory>(
-                    value: subcategory,
-                    child: Text(subcategory.name),
-                  );
-                }).toList(),
-                onChanged: (subcategory) {
-                  setState(() {
-                    _selectedSubcategory = subcategory;
-                  });
-                },
-                validator: (value) => value == null ? 'Please select a subcategory' : null,
-              ),
-              const SizedBox(height: 16),
-
               // Title
               TextFormField(
                 controller: _titleController,
@@ -294,46 +279,27 @@ class _AddSpacePageState extends State<AddSpacePage> {
               ),
               const SizedBox(height: 16),
 
-              // Location
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _locationController,
-                      decoration: const InputDecoration(
-                        labelText: 'Location',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.location_searching),
-                    onPressed: _getCurrentLocation,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Contact Info
-              TextFormField(
-                controller: _contactInfoController,
+              // Subcategory Dropdown
+              DropdownButtonFormField<SpaceSubcategory>(
                 decoration: const InputDecoration(
-                  labelText: 'Contact Information',
+                  labelText: 'Subcategory',
                   border: OutlineInputBorder(),
                 ),
+                value: _selectedSubcategory,
+                items: _filteredSubcategories.map((subcategory) {
+                  return DropdownMenuItem(
+                    value: subcategory,
+                    child: Text(subcategory.name),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedSubcategory = value;
+                  });
+                },
+                validator: (value) => value == null ? 'Please select a subcategory' : null,
               ),
               const SizedBox(height: 16),
-
-              // Website URL
-              TextFormField(
-                controller: _websiteUrlController,
-                decoration: const InputDecoration(
-                  labelText: 'Website URL (optional)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.url,
-              ),
-              const SizedBox(height: 20),
 
               // Image Picker
               Center(
