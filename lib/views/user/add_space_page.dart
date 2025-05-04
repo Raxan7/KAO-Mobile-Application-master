@@ -213,9 +213,9 @@ class _AddSpacePageState extends State<AddSpacePage> {
             MaterialPageRoute(
               builder: (context) => SpacesListPage(
                 userId: userId,
-                userName: prefs.getString('userName'),
-                userEmail: prefs.getString('userEmail'),
-                isLoggedIn: prefs.getBool('isLoggedIn') ?? false,
+                userName: prefs.getString('name'),
+                userEmail: prefs.getString('email'),
+                isLoggedIn: true,
                 onThemeChanged: (bool isDark) {}, // Add proper callback
               ),
             ),
