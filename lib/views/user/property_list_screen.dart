@@ -180,7 +180,13 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
       backgroundColor: Colors.white,
       appBar: !isDesktop && !kIsWeb
           ? AppBar(
-              automaticallyImplyLeading: true,
+              automaticallyImplyLeading: false, // Disable default back button
+              leading: IconButton(
+                icon: const Icon(Icons.menu, color: Colors.black),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer(); // Open the drawer
+                },
+              ),
               title: SizedBox(
                 width: double.infinity,
                 child: Row(
