@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kao_app/routes.dart';
 import '../../models/space.dart';
 import '../../services/api_service.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -32,8 +33,8 @@ class SpacesListPage extends StatefulWidget {
 class _SpacesListPageState extends State<SpacesListPage> {
   late Future<List<Space>> _spacesFuture;
   int _selectedTabIndex = 0;
-  final List<String> _categories = ['Education', 'Creators', 'Technology', 'News'];
-  final List<String> _categoryIds = ['1', '2', '3', '4'];
+  final List<String> _categories = ['Home', 'Education', 'Creators', 'Technology', 'News', 'Discover'];
+  final List<String> _categoryIds = ['0', '1', '2', '3', '4', '5'];
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -63,6 +64,10 @@ class _SpacesListPageState extends State<SpacesListPage> {
   }
 
   void _onTabSelected(int index) {
+    if (index == 0) {
+      Navigator.pushNamed(context, AppRoutes.userPropertyListScreen);
+      return;
+    }
     setState(() {
       _selectedTabIndex = index;
     });
@@ -145,6 +150,43 @@ class _SpacesListPageState extends State<SpacesListPage> {
     
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: !isDesktop
+          ? AppBar(
+              automaticallyImplyLeading: false, // Disable default back button
+              leading: IconButton(
+                icon: const Icon(Icons.menu, color: Colors.black),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer(); // Open the drawer
+                },
+              ),
+              title: SizedBox(
+                width: double.infinity,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/herevar_logo_blue.png',
+                      width: 40,
+                      height: 40,
+                    ),
+                    const SizedBox(width: 16),
+                    const Text(
+                      'herevar',
+                      style: TextStyle(
+                        color: Color(0xFF0D47A1),
+                        fontFamily: 'Poppins',
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              backgroundColor: Colors.white,
+              elevation: 0,
+              iconTheme: const IconThemeData(color: Colors.black),
+            )
+          : null,
       drawer: !isDesktop ? PersistentDrawer(
         userId: widget.userId,
         userName: widget.userName,
@@ -165,31 +207,6 @@ class _SpacesListPageState extends State<SpacesListPage> {
           Expanded(
             child: Column(
               children: [
-                Container(
-                  height: 60,
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/images/herevar_logo_blue.png',
-                        width: 40,
-                        height: 40,
-                      ),
-                      const SizedBox(width: 16),
-                      const Text(
-                        'herevar',
-                        style: TextStyle(
-                          color: Color(0xFF0D47A1),
-                          fontFamily: 'Poppins',
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
                 if (!isDesktop)
                   Container(
                     height: 50,
