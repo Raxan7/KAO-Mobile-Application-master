@@ -40,7 +40,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
   final Map<String, String> _categoryMapping = {
     'Home': '0',
     'Education': '1',
-    'Creators': '2',
+    'Creators & Designers': '2',
     'Technology': '3',
     'News': '4',
     'Discover': '5',
