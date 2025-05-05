@@ -6,6 +6,7 @@ import 'package:kao_app/services/api_service.dart';
 import 'package:kao_app/views/user/professional_onboarding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kao_app/views/user/add_space_page.dart';
+import '../login_page.dart';
 
 class ProfessionalPage extends StatefulWidget {
   const ProfessionalPage({super.key});
@@ -16,16 +17,106 @@ class ProfessionalPage extends StatefulWidget {
 
 class _ProfessionalPageState extends State<ProfessionalPage> {
   final ApiService _apiService = ApiService();
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
   Map<String, dynamic>? _businessProfile;
   bool _isLoading = true;
   String _username = "User";
   bool _showOnboarding = false;
   String? _userId;
+  bool _showImageOnboarding = false;
 
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus(); // Check login status
     _loadData();
+    _checkFirstVisit();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    if (userId == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    }
+  }
+
+  Future<void> _checkFirstVisit() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasVisited = prefs.getBool('hasVisitedProfessionalPage') ?? false;
+    
+    if (!hasVisited) {
+      setState(() {
+        _showImageOnboarding = true;
+      });
+      await prefs.setBool('hasVisitedProfessionalPage', true);
+    }
+  }
+
+  void _nextPage() {
+    if (_currentPage < 3) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      setState(() {
+        _showImageOnboarding = false;
+      });
+    }
+  }
+
+  Widget _buildOnboardingSlide({required String imagePath, bool isLast = false}) {
+    return Container(
+      color: Colors.white,
+      child: Stack(
+        children: [
+          Center(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final double maxHeight = constraints.maxHeight * 0.7;
+                return Image.asset(
+                  imagePath,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: maxHeight,
+                );
+              },
+            ),
+          ),
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: ElevatedButton(
+                onPressed: _nextPage,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  elevation: 5,
+                ),
+                child: Text(
+                  isLast ? 'Get Started' : 'Continue',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadData() async {
@@ -129,7 +220,97 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
   }
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_showImageOnboarding) {
+      return Scaffold(
+        body: Stack(
+          children: [
+            PageView(
+              controller: _pageController,
+              onPageChanged: (int page) {
+                setState(() {
+                  _currentPage = page;
+                });
+              },
+              children: [
+                _buildOnboardingSlide(
+                  imagePath: 'assets/prof/professional1.png',
+                ),
+                _buildOnboardingSlide(
+                  imagePath: 'assets/prof/professional2.png',
+                ),
+                _buildOnboardingSlide(
+                  imagePath: 'assets/prof/professional3.png',
+                ),
+                _buildOnboardingSlide(
+                  imagePath: 'assets/prof/professional4.png',
+                  isLast: true,
+                ),
+              ],
+            ),
+            Positioned(
+              top: 60,
+              right: 24,
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    _showImageOnboarding = false;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Skip',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 20,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(4, (index) {
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 6),
+                    width: _currentPage == index ? 20 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: _currentPage == index 
+                          ? BoxShape.rectangle 
+                          : BoxShape.circle,
+                      borderRadius: _currentPage == index 
+                          ? BorderRadius.circular(4) 
+                          : null,
+                      color: _currentPage == index
+                          ? Colors.blue
+                          : Colors.grey.withOpacity(0.5),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_showOnboarding) {
       return ProfessionalOnboarding(
         userId: int.parse(_userId!),
@@ -197,6 +378,16 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
               icon: const Icon(Icons.edit, color: Colors.white),
               onPressed: _editProfile,
             ),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('hasVisitedProfessionalPage', false);
+              setState(() {
+                _showImageOnboarding = true;
+              });
+            },
+          ),
         ],
       ),
       body: _businessProfile == null ? _buildEmptyState() : _buildProfileContent(),
