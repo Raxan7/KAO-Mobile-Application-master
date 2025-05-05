@@ -34,6 +34,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   final ScrollController _scrollController = ScrollController();
   final List<String> _categories = ['Home', 'Education', 'Creators', 'Technology', 'News', 'Discover'];
   final List<String> _categoryIds = ['0', '1', '2', '3', '4', '5'];
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -177,14 +178,15 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     final isDesktop = MediaQuery.of(context).size.width > 600;
     
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.white,
-      appBar: !isDesktop && !kIsWeb
+      appBar: !isDesktop
           ? AppBar(
-              automaticallyImplyLeading: false, // Disable default back button
+              automaticallyImplyLeading: false,
               leading: IconButton(
                 icon: const Icon(Icons.menu, color: Colors.black),
                 onPressed: () {
-                  Scaffold.of(context).openDrawer(); // Open the drawer
+                  _scaffoldKey.currentState?.openDrawer();
                 },
               ),
               title: SizedBox(
@@ -215,7 +217,8 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
               iconTheme: const IconThemeData(color: Colors.black),
             )
           : null,
-      drawer: !kIsWeb && !isDesktop
+      // Changed this condition to show drawer on mobile regardless of platform
+      drawer: !isDesktop
           ? PersistentDrawer(
               userId: widget.userId,
               userName: widget.userName,
@@ -226,7 +229,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
           : null,
       body: Row(
         children: [
-          if (!kIsWeb && isDesktop)
+          if (isDesktop)
             PersistentDrawer(
               userId: widget.userId,
               userName: widget.userName,
@@ -237,32 +240,6 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
           Expanded(
             child: Column(
               children: [
-                if (isDesktop || kIsWeb)
-                  Container(
-                    height: 60,
-                    color: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          'assets/images/herevar_logo_blue.png',
-                          width: 40,
-                          height: 40,
-                        ),
-                        const SizedBox(width: 16),
-                        const Text(
-                          'herevar',
-                          style: TextStyle(
-                            color: Color(0xFF0D47A1),
-                            fontFamily: 'Poppins',
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 if (!isDesktop)
                   Container(
                     height: 50,
