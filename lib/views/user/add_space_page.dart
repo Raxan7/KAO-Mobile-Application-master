@@ -9,7 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Import path_provider
 import '../../services/api_service.dart';
 import '../../models/space_category.dart';
-import 'spaces_list_page.dart'; // Import SpacesListPage
+import 'professional_page.dart';
+import '../login_page.dart';
 
 class AddSpacePage extends StatefulWidget {
   const AddSpacePage({super.key});
@@ -49,6 +50,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus(); // Check login status
     _loadCategories();
     _loadProfessionalData(); // Load professional data
     _timer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
@@ -58,6 +60,17 @@ class _AddSpacePageState extends State<AddSpacePage> {
         });
       }
     });
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    if (userId == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    }
   }
 
   @override
@@ -211,13 +224,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => SpacesListPage(
-                userId: userId,
-                userName: prefs.getString('name'),
-                userEmail: prefs.getString('email'),
-                isLoggedIn: true,
-                onThemeChanged: (bool isDark) {}, // Add proper callback
-              ),
+              builder: (context) => const ProfessionalPage(), // Navigate to ProfessionalPage
             ),
           );
         } else {

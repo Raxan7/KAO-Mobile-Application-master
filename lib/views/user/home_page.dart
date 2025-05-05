@@ -6,6 +6,7 @@ import '../../widgets/persistent_drawer.dart'; // Import the Persistent Drawer
 import 'dashboard_sideway_slide_views/accomodation_sideway_slider.dart';
 import 'bookings_page.dart';
 import 'search_page.dart'; // Import the HotelCard widget
+import '../login_page.dart';
 
 class HomePage extends StatefulWidget {
   final bool isDarkMode; // Add a field for the current theme state
@@ -25,12 +26,11 @@ class _HomePageState extends State<HomePage> {
 
   int _selectedIndex = 0; // Track the selected index of bottom navigation
   late List<Widget> _pages; // PageController to control the PageView
-  
-  
 
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus(); // Check login status
     _loadUserData(); // Load user data when the page initializes
 
     // Initialize pages with the current theme state and callback
@@ -41,9 +41,15 @@ class _HomePageState extends State<HomePage> {
     ];
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    if (userId == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    }
   }
 
   Future<void> _loadUserData() async {

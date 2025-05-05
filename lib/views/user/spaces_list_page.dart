@@ -10,10 +10,10 @@ class SpacesListPage extends StatefulWidget {
   final String? categoryId;
   final String? subcategoryId;
   final String? userId;
-  final String? userName; // Add userName parameter
-  final String? userEmail; // Add userEmail parameter
-  final bool isLoggedIn; // Add isLoggedIn parameter
-  final Function(bool) onThemeChanged; // Add onThemeChanged parameter
+  final String? userName;
+  final String? userEmail;
+  final bool isLoggedIn;
+  final Function(bool) onThemeChanged;
 
   const SpacesListPage({
     super.key,
@@ -36,11 +36,11 @@ class _SpacesListPageState extends State<SpacesListPage> {
   final List<String> _categories = ['Home', 'Education', 'Creators', 'Technology', 'News', 'Discover'];
   final List<String> _categoryIds = ['0', '1', '2', '3', '4', '5'];
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // Add this key
 
   @override
   void initState() {
     super.initState();
-    // Set initial tab based on categoryId
     _selectedTabIndex = widget.categoryId != null 
         ? _categoryIds.indexOf(widget.categoryId!)
         : 0;
@@ -83,7 +83,6 @@ class _SpacesListPageState extends State<SpacesListPage> {
     );
   }
 
-  // In SpacesListPage, replace the Card widget in _buildSpaceList with SpaceCard
   Widget _buildSpaceList(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 600;
 
@@ -149,14 +148,15 @@ class _SpacesListPageState extends State<SpacesListPage> {
     final isDesktop = MediaQuery.of(context).size.width > 600;
     
     return Scaffold(
+      key: _scaffoldKey, // Add the key here
       backgroundColor: Colors.white,
       appBar: !isDesktop
           ? AppBar(
-              automaticallyImplyLeading: false, // Disable default back button
+              automaticallyImplyLeading: false,
               leading: IconButton(
                 icon: const Icon(Icons.menu, color: Colors.black),
                 onPressed: () {
-                  Scaffold.of(context).openDrawer(); // Open the drawer
+                  _scaffoldKey.currentState?.openDrawer(); // Use the key to open drawer
                 },
               ),
               title: SizedBox(
