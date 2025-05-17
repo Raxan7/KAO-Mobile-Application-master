@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:kao_app/widgets/cards/property_card.dart';
+import 'package:kao_app/utils/responsive_utils.dart';
+import 'package:kao_app/widgets/cards/property_card_fixed.dart';
+import 'package:kao_app/widgets/responsive_grid.dart';
+import 'package:kao_app/widgets/shimmer_loading.dart';
 import '../../models/user_property.dart';
 import '../../services/api_service.dart';
 import '../../widgets/persistent_drawer.dart';
 import 'spaces_list_page.dart';
-import 'package:flutter/foundation.dart';
 
 class PropertyListScreen extends StatefulWidget {
   final String? userId;
@@ -33,7 +35,6 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   int _selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
   final List<String> _categories = ['Home', 'Education', 'Creators', 'Technology', 'News', 'Discover'];
-  final List<String> _categoryIds = ['0', '1', '2', '3', '4', '5'];
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -134,37 +135,73 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   }
 
   Widget _buildPropertyList(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final isDesktop = ResponsiveUtils.isDesktop(context);
 
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _propertiesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          // Show shimmer loading effect
+          return Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isDesktop ? 32 : 16,
+              vertical: isDesktop ? 16 : 8,
+            ),
+            child: ResponsiveGrid(
+              children: List.generate(
+                6,
+                (index) => ShimmerLoading(
+                  isLoading: true,
+                  child: PropertyCardShimmer(isDesktop: isDesktop),
+                ),
+              ),
+            ),
+          );
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         } else if (snapshot.hasData) {
           final properties = snapshot.data!;
 
-          return ListView.builder(
-            controller: _scrollController,
-            itemCount: properties.length,
+          if (properties.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.home_work_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No properties found',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Check back later for new listings',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Padding(
             padding: EdgeInsets.symmetric(
               horizontal: isDesktop ? 32 : 16,
               vertical: isDesktop ? 16 : 8,
             ),
-            itemBuilder: (context, index) {
-              final property = properties[index]['property'] as UserProperty;
-              final images = properties[index]['images'] as List<String>;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: PropertyCard(
+            child: ResponsiveGrid(
+              spacing: 16,
+              runSpacing: 16,
+              children: properties.map((propertyData) {
+                final property = propertyData['property'] as UserProperty;
+                final images = propertyData['images'] as List<String>;
+                
+                return PropertyCardFixed(
                   property: property,
                   images: images,
                   isDesktop: isDesktop,
-                ),
-              );
-            },
+                );
+              }).toList(),
+            ),
           );
         } else {
           return const Center(child: Text('No properties found.'));
@@ -175,58 +212,101 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final bool isDesktop = ResponsiveUtils.isDesktop(context);
+    
+    final categoriesWidget = Column(
+      children: [
+        if (!isDesktop)
+          Container(
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Center(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: _categories.asMap().entries.map((entry) {
+                    return _buildTabButton(entry.value, entry.key, isDesktop);
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: _selectedIndex == 0 || _selectedIndex == 5
+                    ? _buildPropertyList(context)
+                    : Container(),
+              ),
+              if (isDesktop)
+                Container(
+                  width: 200,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Column(
+                    children: _categories.asMap().entries.map((entry) {
+                      return Column(
+                        children: [
+                          _buildTabButton(entry.value, entry.key, isDesktop),
+                          const SizedBox(height: 8),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
     
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.white,
-      appBar: !isDesktop
-          ? AppBar(
-              automaticallyImplyLeading: false,
-              leading: IconButton(
-                icon: const Icon(Icons.menu, color: Colors.black),
-                onPressed: () {
-                  _scaffoldKey.currentState?.openDrawer();
-                },
-              ),
-              title: SizedBox(
-                width: double.infinity,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/images/herevar_logo_blue.png',
-                      width: 40,
-                      height: 40,
-                    ),
-                    const SizedBox(width: 16),
-                    const Text(
-                      'herevar',
-                      style: TextStyle(
-                        color: Color(0xFF0D47A1),
-                        fontFamily: 'Poppins',
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+      appBar: !isDesktop 
+        ? AppBar(
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: const Icon(Icons.menu, color: Colors.black),
+              onPressed: () {
+                _scaffoldKey.currentState?.openDrawer();
+              },
+            ),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/herevar_logo_blue.png',
+                  width: 40,
+                  height: 40,
                 ),
-              ),
-              backgroundColor: Colors.white,
-              elevation: 0,
-              iconTheme: const IconThemeData(color: Colors.black),
-            )
-          : null,
-      // Changed this condition to show drawer on mobile regardless of platform
+                const SizedBox(width: 16),
+                const Text(
+                  'herevar',
+                  style: TextStyle(
+                    color: Color(0xFF0D47A1),
+                    fontFamily: 'Poppins',
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.white,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.black),
+          )
+        : null,
       drawer: !isDesktop
-          ? PersistentDrawer(
-              userId: widget.userId,
-              userName: widget.userName,
-              userEmail: widget.userEmail,
-              isLoggedIn: widget.isLoggedIn,
-              onThemeChanged: widget.onThemeChanged,
-            )
-          : null,
+        ? PersistentDrawer(
+            userId: widget.userId,
+            userName: widget.userName,
+            userEmail: widget.userEmail,
+            isLoggedIn: widget.isLoggedIn,
+            onThemeChanged: widget.onThemeChanged,
+          )
+        : null,
       body: Row(
         children: [
           if (isDesktop)
@@ -238,53 +318,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
               onThemeChanged: widget.onThemeChanged,
             ),
           Expanded(
-            child: Column(
-              children: [
-                if (!isDesktop)
-                  Container(
-                    height: 50,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Center(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: _categories.asMap().entries.map((entry) {
-                            return _buildTabButton(entry.value, entry.key, isDesktop);
-                          }).toList(),
-                        ),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _selectedIndex == 0 || _selectedIndex == 5
-                            ? _buildPropertyList(context)
-                            : Container(),
-                      ),
-                      if (isDesktop)
-                        Container(
-                          width: 200,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Column(
-                            children: _categories.asMap().entries.map((entry) {
-                              return Column(
-                                children: [
-                                  _buildTabButton(entry.value, entry.key, isDesktop),
-                                  const SizedBox(height: 8),
-                                ],
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            child: categoriesWidget,
           ),
         ],
       ),

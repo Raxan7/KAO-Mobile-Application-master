@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:kao_app/services/real_time_update_service.dart';
+import 'package:kao_app/utils/app_theme.dart';
 import 'package:kao_app/utils/theme_preferences.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'routes.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   RealTimeUpdateService realTimeUpdateService = RealTimeUpdateService();
   realTimeUpdateService.startPolling();
   runApp(const MyApp());
@@ -21,6 +23,12 @@ class _MyAppState extends State<MyApp> {
   bool _isDarkMode = false;
   String? _initialRoute;
   bool _dataLoaded = false; // Track loading state
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
   // Load theme preference from shared preferences
   Future<void> _loadTheme() async {
@@ -73,36 +81,41 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return _dataLoaded
-        ? MaterialApp(
-            title: 'Discover & Connect',
-            theme: ThemeData(
-              brightness: Brightness.light,
-              primarySwatch: Colors.blue,
+    if (!_dataLoaded) {
+      return MaterialApp(
+        title: 'Discover & Connect',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        home: const Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image(
+                  image: AssetImage('assets/images/splash_icon.png'),
+                  width: 100,
+                  height: 100,
+                ),
+                SizedBox(height: 20),
+                CircularProgressIndicator(),
+                SizedBox(height: 20),
+                Text('Loading...', style: TextStyle(fontSize: 16)),
+              ],
             ),
-            darkTheme: ThemeData(
-              brightness: Brightness.dark,
-              primaryColor: const Color(0xFF1A237E),
-              scaffoldBackgroundColor: const Color(0xFF0D47A1),
-              appBarTheme: const AppBarTheme(
-                color: Color(0xFF1A237E),
-              ),
-              bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-                backgroundColor: Color(0xFF0D47A1),
-                selectedItemColor: Colors.white,
-                unselectedItemColor: Colors.grey,
-              ),
-            ),
-            themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            initialRoute: _initialRoute ?? AppRoutes.login,
-            routes: AppRoutes.getRoutes(_isDarkMode, _toggleTheme),
-          )
-        : const Center(child: CircularProgressIndicator());
-  }
+          ),
+        ),
+      );
+    }
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
+    return MaterialApp(
+      title: 'Discover & Connect',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      initialRoute: _initialRoute ?? AppRoutes.login,
+      routes: AppRoutes.getRoutes(_isDarkMode, _toggleTheme),
+      debugShowCheckedModeBanner: false,
+    );
   }
 }
+

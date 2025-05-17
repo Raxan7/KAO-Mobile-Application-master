@@ -180,7 +180,9 @@ class AppRoutes {
               }
             },
           ),
-      addSpace: (context) => const AddSpacePage(),
+      addSpace: (context) => AddSpacePage(
+            onThemeChanged: onThemeChanged,
+          ),
       // dalaliProfileInUser: (context) => ProfileBaseScreen(),
     };
   }

@@ -13,7 +13,7 @@ import 'professional_page.dart';
 import '../login_page.dart';
 
 class AddSpacePage extends StatefulWidget {
-  const AddSpacePage({super.key});
+  const AddSpacePage({super.key, required Function(bool p1) onThemeChanged});
 
   @override
   _AddSpacePageState createState() => _AddSpacePageState();

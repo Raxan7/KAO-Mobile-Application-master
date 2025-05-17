@@ -33,8 +33,8 @@ class _BottomNavigationState extends State<BottomNavigation> {
     super.initState();
     _pages = [
       HomePage(isDarkMode: widget.isDarkMode, onThemeChanged: widget.onThemeChanged),
-      AddSpacePage(isDarkMode: widget.isDarkMode, onThemeChanged: widget.onThemeChanged),
-      UserProfile(isDarkMode: widget.isDarkMode, onThemeChanged: widget.onThemeChanged),
+      AddSpacePage(onThemeChanged: widget.onThemeChanged),
+      const UserProfile(),
     ];
   }
 

@@ -8,30 +8,34 @@ import 'package:kao_app/services/user_preferences.dart';
 import 'package:kao_app/utils/constants.dart';
 import 'package:kao_app/utils/responsive_utils.dart';
 import 'package:kao_app/views/user/dalali_profile_in_user/screens/profile_base_screen.dart';
-import 'package:kao_app/widgets/optimized_image.dart';
+import 'package:kao_app/widgets/image_carousel.dart';
 import 'package:animations/animations.dart';
 import '../../models/user_property.dart';
 import '../../views/user/property_detail.dart';
 
-class PropertyCard extends StatefulWidget {
+class PropertyCardFixed extends StatefulWidget {
   final UserProperty property;
   final List<String> images;
   final bool isDesktop;
+  final bool useHero;
+  final bool showFullDetails;
+  final VoidCallback? onTap;
 
-  const PropertyCard({
+  const PropertyCardFixed({
     required this.property,
     required this.images,
     this.isDesktop = false,
+    this.useHero = true,
+    this.showFullDetails = true,
+    this.onTap,
     super.key,
   });
 
   @override
-  _PropertyCardState createState() => _PropertyCardState();
+  State<PropertyCardFixed> createState() => _PropertyCardFixedState();
 }
 
-class _PropertyCardState extends State<PropertyCard> {
-  int _currentImageIndex = 0;
-  Timer? _imageTimer;
+class _PropertyCardFixedState extends State<PropertyCardFixed> {
   String? profilePicUrl;
   String? username;
   String? currentUserId;
@@ -45,9 +49,6 @@ class _PropertyCardState extends State<PropertyCard> {
   @override
   void initState() {
     super.initState();
-    if (widget.images.length > 1) {
-      _startImageCarousel();
-    }
     _fetchUserDetails();
     _fetchInteractionCounts();
     _loadCurrentUserId();
@@ -60,36 +61,6 @@ class _PropertyCardState extends State<PropertyCard> {
     if (currentUserId != null) {
       _fetchInteractionCounts();
     }
-  }
-
-  void _startImageCarousel() {
-    _imageTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted) {
-        setState(() {
-          _currentImageIndex = (_currentImageIndex + 1) % widget.images.length;
-        });
-      }
-    });
-  }
-
-  void _stopImageCarousel() {
-    _imageTimer?.cancel();
-  }
-
-  void _nextImage() {
-    setState(() {
-      _currentImageIndex = (_currentImageIndex + 1) % widget.images.length;
-    });
-    _stopImageCarousel();
-    _startImageCarousel();
-  }
-
-  void _previousImage() {
-    setState(() {
-      _currentImageIndex = (_currentImageIndex - 1 + widget.images.length) % widget.images.length;
-    });
-    _stopImageCarousel();
-    _startImageCarousel();
   }
 
   void _navigateToProfile() {
@@ -296,7 +267,7 @@ class _PropertyCardState extends State<PropertyCard> {
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
                         color: Colors.grey,
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                   ),
@@ -399,12 +370,6 @@ class _PropertyCardState extends State<PropertyCard> {
   }
 
   @override
-  void dispose() {
-    _imageTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isLargeScreen = ResponsiveUtils.isDesktop(context);
@@ -416,277 +381,178 @@ class _PropertyCardState extends State<PropertyCard> {
     final String formattedPrice = currencyFormat.format(widget.property.price);
     final String timeAgo = getTimeAgo(widget.property.createdAt);
 
-    return OpenContainer(
-      transitionType: ContainerTransitionType.fadeThrough,
-      openBuilder: (context, _) => PropertyDetail(
-        propertyId: int.parse(widget.property.propertyId),
-      ),
-      closedElevation: isLargeScreen ? 8.0 : 4.0,
-      closedShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(isLargeScreen ? 20.0 : 16.0),
-      ),
-      closedColor: Theme.of(context).cardColor,
-      closedBuilder: (context, openContainer) => Container(
-        width: cardWidth,
-        margin: EdgeInsets.symmetric(
-          vertical: isLargeScreen ? 20.0 : (isTablet ? 16.0 : 12.0),
-          horizontal: isLargeScreen ? 0.0 : 8.0,
+    Widget buildCardContent() {
+      return Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(isLargeScreen ? 20.0 : 16.0),
         ),
-        child: Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(isLargeScreen ? 20.0 : 16.0),
-          ),
-          elevation: isLargeScreen ? 8.0 : 4.0,
-          shadowColor: Colors.black.withOpacity(0.2),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(isLargeScreen ? 20.0 : 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Profile Section
-                if (profilePicUrl != null && username != null)
-                  Padding(
-                    padding: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: _navigateToProfile,
-                          child: Hero(
-                            tag: 'profile_${widget.property.userId}',
-                            child: CircleAvatar(
-                              radius: isLargeScreen ? 28 : (isTablet ? 26 : 24),
-                              backgroundImage: profilePicUrl != null 
-                                ? NetworkImage(profilePicUrl!) 
-                                : null,
-                              onBackgroundImageError: (_, __) => const Icon(Icons.person),
-                              backgroundColor: Colors.grey.shade200,
-                              child: profilePicUrl == null 
-                                ? Icon(Icons.person, size: isLargeScreen ? 28 : 24) 
-                                : null,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: isLargeScreen ? 16 : (isTablet ? 14 : 12)),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: _navigateToProfile,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  username ?? 'Unknown User',
-                                  style: TextStyle(
-                                    fontSize: isLargeScreen ? 18 : (isTablet ? 16 : 14),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  timeAgo,
-                                  style: TextStyle(
-                                    fontSize: isLargeScreen ? 14 : 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // Image Section
-                AspectRatio(
-                  aspectRatio: isLargeScreen ? 16/9 : 16/9,
-                  child: Stack(
-                    fit: StackFit.expand,
+        elevation: isLargeScreen ? 8.0 : 4.0,
+        shadowColor: Colors.black.withOpacity(0.2),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(isLargeScreen ? 20.0 : 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Profile Section
+              if (profilePicUrl != null && username != null)
+                Padding(
+                  padding: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
+                  child: Row(
                     children: [
-                      // Main Image with Optimized Image Widget
-                      OptimizedImage(
-                        imageUrl: widget.images[_currentImageIndex],
-                        fit: BoxFit.cover,
-                        errorWidget: Container(
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
+                      GestureDetector(
+                        onTap: _navigateToProfile,
+                        child: Hero(
+                          tag: 'profile_${widget.property.userId}',
+                          child: CircleAvatar(
+                            radius: isLargeScreen ? 28 : (isTablet ? 26 : 24),
+                            backgroundImage: profilePicUrl != null 
+                              ? NetworkImage(profilePicUrl!) 
+                              : null,
+                            onBackgroundImageError: (_, __) => const Icon(Icons.person),
+                            backgroundColor: Colors.grey.shade200,
+                            child: profilePicUrl == null 
+                              ? Icon(Icons.person, size: isLargeScreen ? 28 : 24) 
+                              : null,
                           ),
                         ),
                       ),
-                      
-                      if (widget.images.length > 1)
-                        Positioned.fill(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      SizedBox(width: isLargeScreen ? 16 : (isTablet ? 14 : 12)),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _navigateToProfile,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Left arrow
-                              GestureDetector(
-                                onTap: _previousImage,
-                                child: Container(
-                                  width: 48,
-                                  color: Colors.transparent,
-                                  child: Center(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.black38,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      padding: const EdgeInsets.all(8),
-                                      child: const Icon(
-                                        Icons.arrow_back_ios,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
+                              Text(
+                                username ?? 'Unknown User',
+                                style: TextStyle(
+                                  fontSize: isLargeScreen ? 18 : (isTablet ? 16 : 14),
+                                  fontWeight: FontWeight.bold,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              // Right arrow
-                              GestureDetector(
-                                onTap: _nextImage,
-                                child: Container(
-                                  width: 48,
-                                  color: Colors.transparent,
-                                  child: Center(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.black38,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      padding: const EdgeInsets.all(8),
-                                      child: const Icon(
-                                        Icons.arrow_forward_ios,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
+                              Text(
+                                timeAgo,
+                                style: TextStyle(
+                                  fontSize: isLargeScreen ? 14 : 12,
+                                  color: Colors.grey,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      // Image indicators
-                      if (widget.images.length > 1)
-                        Positioned(
-                          bottom: 10,
-                          left: 0,
-                          right: 0,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              widget.images.length,
-                              (index) => Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 4),
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: index == _currentImageIndex
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.5),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      ),
                     ],
                   ),
                 ),
 
-                // Interaction Buttons Section
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(color: Colors.grey.shade300),
-                      bottom: BorderSide(color: Colors.grey.shade300),
+              // Image Section
+              AspectRatio(
+                aspectRatio: isLargeScreen ? 16/9 : 16/9,
+                child: widget.useHero ? 
+                  Hero(
+                    tag: 'property_${widget.property.propertyId}',
+                    child: ImageCarousel(
+                      images: widget.images,
+                      borderRadius: null,
                     ),
+                  ) : 
+                  ImageCarousel(
+                    images: widget.images,
+                    borderRadius: null,
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+              ),
+
+              // Interaction Buttons Section
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Colors.grey.shade300),
+                    bottom: BorderSide(color: Colors.grey.shade300),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildInteractionIcon(
+                        icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                        color: isLiked ? Colors.red : Colors.black,
+                        count: likes,
+                        onPressed: _likeProperty,
+                      ),
+                      _buildInteractionIcon(
+                        icon: Icons.comment_outlined,
+                        color: Colors.blue,
+                        count: comments,
+                        onPressed: _showCommentsPopup,
+                      ),
+                      _buildInteractionIcon(
+                        icon: Icons.share,
+                        color: Colors.green,
+                        count: shares,
+                        onPressed: _shareProperty,
+                      ),
+                      _buildInteractionIcon(
+                        icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                        color: Colors.orange,
+                        count: 0, // Bookmark doesn't have count
+                        onPressed: _bookmarkProperty,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Details Section
+              Padding(
+                padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.property.title,
+                      style: TextStyle(
+                        fontSize: isLargeScreen ? 20 : (isTablet ? 18 : 16),
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Tsh. $formattedPrice',
+                      style: TextStyle(
+                        fontSize: isLargeScreen ? 18 : (isTablet ? 16 : 14),
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Row(
                       children: [
-                        _buildInteractionIcon(
-                          icon: isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: isLiked ? Colors.red : Colors.black,
-                          count: likes,
-                          onPressed: _likeProperty,
+                        Icon(
+                          Icons.location_on,
+                          size: isLargeScreen ? 18 : 16,
+                          color: Colors.grey,
                         ),
-                        _buildInteractionIcon(
-                          icon: Icons.comment_outlined,
-                          color: Colors.blue,
-                          count: comments,
-                          onPressed: _showCommentsPopup,
-                        ),
-                        _buildInteractionIcon(
-                          icon: Icons.share,
-                          color: Colors.green,
-                          count: shares,
-                          onPressed: _shareProperty,
-                        ),
-                        _buildInteractionIcon(
-                          icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                          color: Colors.orange,
-                          count: 0, // Bookmark doesn't have count
-                          onPressed: _bookmarkProperty,
+                        SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            widget.property.location,
+                            style: TextStyle(
+                              fontSize: isLargeScreen ? 16 : 14,
+                              color: Colors.grey[700],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-
-                // Details Section
-                Padding(
-                  padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.property.title,
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 20 : (isTablet ? 18 : 16),
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Tsh. $formattedPrice',
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 18 : (isTablet ? 16 : 14),
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            size: isLargeScreen ? 18 : 16,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              widget.property.location,
-                              style: TextStyle(
-                                fontSize: isLargeScreen ? 16 : 14,
-                                color: Colors.grey[700],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
+                    if (widget.showFullDetails) ...[
                       SizedBox(height: 12),
                       AnimatedSize(
                         duration: const Duration(milliseconds: 300),
@@ -728,13 +594,47 @@ class _PropertyCardState extends State<PropertyCard> {
                         ),
                       ),
                     ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      );
+    }
+
+    return Container(
+      width: cardWidth,
+      margin: EdgeInsets.symmetric(
+        vertical: isLargeScreen ? 20.0 : (isTablet ? 16.0 : 12.0),
+        horizontal: isLargeScreen ? 0.0 : 8.0,
       ),
+      child: widget.onTap != null 
+          ? OpenContainer(
+              transitionType: ContainerTransitionType.fadeThrough,
+              openBuilder: (context, _) => PropertyDetail(
+                propertyId: int.parse(widget.property.propertyId),
+              ),
+              closedElevation: 0, // No elevation to avoid double shadow
+              closedShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(isLargeScreen ? 20.0 : 16.0),
+              ),
+              closedColor: Colors.transparent, // Transparent background
+              closedBuilder: (context, openContainer) => buildCardContent(),
+            )
+          : GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PropertyDetail(
+                      propertyId: int.parse(widget.property.propertyId),
+                    ),
+                  ),
+                );
+              },
+              child: buildCardContent(),
+            ),
     );
   }
 }
