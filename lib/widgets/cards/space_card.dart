@@ -233,141 +233,287 @@ class _SpaceCardState extends State<SpaceCard> {
                 ),
               ),
 
-            // Image Section
+            // Image Section - Enhanced with better space utilization
             if (widget.space.media.isNotEmpty)
-              AspectRatio(
-                aspectRatio: isLargeScreen ? 16/8 : 16/9,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.network(
-                      '$baseUrl/images/spaces/${widget.space.media[_currentImageIndex].mediaUrl}',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => 
-                        Container(color: Colors.grey[200]),
-                    ),
-                    if (widget.space.media.length > 1)
-                      Positioned(
-                        right: 12.0,
-                        bottom: 12.0,
-                        child: FloatingActionButton.small(
-                          heroTag: null,
-                          onPressed: _nextImage,
-                          child: const Icon(Icons.arrow_forward),
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: isLargeScreen ? 12 : 8),
+                child: AspectRatio(
+                  aspectRatio: isDesktop ? 16/9 : 16/10, // Better aspect ratios
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                  ],
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12.0),
+                          child: Image.network(
+                            '$baseUrl/images/spaces/${widget.space.media[_currentImageIndex].mediaUrl}',
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder: (context, error, stackTrace) => 
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                child: const Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                                      SizedBox(height: 4),
+                                      Text('Image not available', 
+                                        style: TextStyle(color: Colors.grey, fontSize: 11)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                    strokeWidth: 2.0,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        if (widget.space.media.length > 1)
+                          Positioned(
+                            right: 8.0,
+                            bottom: 8.0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 16),
+                                onPressed: _nextImage,
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                padding: const EdgeInsets.all(4),
+                              ),
+                            ),
+                          ),
+                        // Image indicators - compact
+                        if (widget.space.media.length > 1)
+                          Positioned(
+                            bottom: 6.0,
+                            left: 0,
+                            right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                widget.space.media.length,
+                                (index) => Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _currentImageIndex == index 
+                                        ? Colors.white 
+                                        : Colors.white.withOpacity(0.5),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               )
             else
-              AspectRatio(
-                aspectRatio: isLargeScreen ? 16/8 : 16/9,
-                child: Container(
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Icon(Icons.image, size: 50, color: Colors.grey),
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: isLargeScreen ? 12 : 8),
+                child: AspectRatio(
+                  aspectRatio: isDesktop ? 16/9 : 16/10,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.image, size: 40, color: Colors.grey),
+                          SizedBox(height: 4),
+                          Text('No image available', 
+                            style: TextStyle(color: Colors.grey, fontSize: 11)),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
 
-            // Details Section
+            // Details Section - Compact and efficient layout
             Padding(
-              padding: EdgeInsets.all(isLargeScreen ? 20.0 : 16.0),
+              padding: EdgeInsets.all(isLargeScreen ? 16.0 : 14.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.space.title,
-                    style: TextStyle(
-                      fontSize: isLargeScreen ? 20 : 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  // Title and subcategory in one row to save space
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.space.title,
+                          style: TextStyle(
+                            fontSize: isLargeScreen ? 18 : 16,
+                            fontWeight: FontWeight.bold,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade500,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          widget.space.subcategoryName,
+                          style: TextStyle(
+                            fontSize: isLargeScreen ? 10 : 9,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
-                  // Subcategory Chip
-                  Chip(
-                    label: Text(
-                      widget.space.subcategoryName,
-                      style: TextStyle(
-                        fontSize: isLargeScreen ? 14 : 12,
-                        color: Colors.white,
-                      ),
-                    ),
-                    backgroundColor: Colors.blue[300],
-                  ),
-                  const SizedBox(height: 12),
+                  // Location with better styling
                   if (widget.space.location != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                          Icon(Icons.location_on, size: 14, color: Colors.red.shade400),
                           const SizedBox(width: 4),
-                          Text(
-                            widget.space.location!,
-                            style: TextStyle(
-                              fontSize: isLargeScreen ? 14 : 12,
-                              color: Colors.grey,
+                          Flexible(
+                            child: Text(
+                              widget.space.location!,
+                              style: TextStyle(
+                                fontSize: isLargeScreen ? 12 : 11,
+                                color: Colors.grey.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
                     ),
+                  // Description with better line height
                   Text(
                     _getShortDescription(widget.space.description),
                     style: TextStyle(
-                      fontSize: isLargeScreen ? 14 : 12,
+                      fontSize: isLargeScreen ? 13 : 12,
+                      height: 1.3,
+                      color: Colors.grey.shade700,
                     ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  // Read more button - compact
                   if (widget.space.description.split(' ').length > 12)
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () => setState(() => _isExpanded = !_isExpanded),
-                        child: Text(_isExpanded ? "Show less" : "Read more"),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          _isExpanded ? "Show less" : "Read more",
+                          style: TextStyle(
+                            fontSize: isLargeScreen ? 12 : 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
 
-            // Interaction Buttons
+            // Interaction Buttons - Compact and modern design
             Container(
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: Colors.grey.shade300),
+                  top: BorderSide(color: Colors.grey.shade200, width: 1),
                 ),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: EdgeInsets.symmetric(
+                  vertical: isLargeScreen ? 10.0 : 8.0,
+                  horizontal: isLargeScreen ? 16.0 : 12.0,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildInteractionButton(
                       icon: isLiked ? Icons.favorite : Icons.favorite_border,
-                      color: isLiked ? Colors.red : Colors.black,
+                      color: isLiked ? Colors.red : Colors.grey.shade600,
                       label: '$likes',
                       onPressed: _likeSpace,
+                      isLargeScreen: isLargeScreen,
                     ),
                     _buildInteractionButton(
                       icon: Icons.comment_outlined,
-                      color: Colors.blue,
+                      color: Colors.blue.shade600,
                       label: '$comments',
                       onPressed: _showCommentsPopup,
+                      isLargeScreen: isLargeScreen,
                     ),
                     _buildInteractionButton(
-                      icon: Icons.share,
-                      color: Colors.green,
+                      icon: Icons.share_outlined,
+                      color: Colors.green.shade600,
                       label: '$shares',
                       onPressed: _shareSpace,
+                      isLargeScreen: isLargeScreen,
                     ),
                     _buildInteractionButton(
                       icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                      color: Colors.orange,
+                      color: isBookmarked ? Colors.orange.shade600 : Colors.grey.shade600,
                       label: '',
                       onPressed: _bookmarkSpace,
+                      isLargeScreen: isLargeScreen,
                     ),
                   ],
                 ),
@@ -384,19 +530,41 @@ class _SpaceCardState extends State<SpaceCard> {
     required Color color,
     required String label,
     required VoidCallback onPressed,
+    required bool isLargeScreen,
   }) {
     return GestureDetector(
       onTap: onPressed,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color),
-          if (label.isNotEmpty)
-            Text(
-              label,
-              style: TextStyle(color: color, fontSize: 12),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isLargeScreen ? 12 : 8,
+          vertical: isLargeScreen ? 8 : 6,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.transparent,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon, 
+              color: color,
+              size: isLargeScreen ? 22 : 20,
             ),
-        ],
+            if (label.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color, 
+                    fontSize: isLargeScreen ? 13 : 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
