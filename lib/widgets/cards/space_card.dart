@@ -139,14 +139,22 @@ class _SpaceCardState extends State<SpaceCard> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isLargeScreen = widget.isDesktop || screenWidth > 600;
-    final cardWidth = isLargeScreen ? screenWidth * 0.6 : screenWidth * 0.9;
+    final isDesktop = screenWidth > 900;
+    
+    // Better responsive width calculation
+    final cardWidth = isDesktop 
+        ? screenWidth * 0.45  // Two cards per row on desktop
+        : isLargeScreen 
+            ? screenWidth * 0.7  // Centered on tablet
+            : screenWidth * 0.95; // Full width on mobile
+            
     final String timeAgo = getTimeAgo(widget.space.createdAt);
 
     return Container(
       width: cardWidth,
       margin: EdgeInsets.symmetric(
-        vertical: isLargeScreen ? 16.0 : 8.0,
-        horizontal: isLargeScreen ? 0.0 : 8.0,
+        vertical: isLargeScreen ? 12.0 : 8.0,
+        horizontal: isDesktop ? 12.0 : 8.0,
       ),
       child: GestureDetector(
         onTap: () {
@@ -159,28 +167,28 @@ class _SpaceCardState extends State<SpaceCard> {
         },
       child: Card(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(isLargeScreen ? 20.0 : 16.0),
+          borderRadius: BorderRadius.circular(isLargeScreen ? 16.0 : 12.0),
         ),
-        elevation: isLargeScreen ? 8.0 : 4.0,
+        elevation: isLargeScreen ? 6.0 : 3.0,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile Section
+            // Profile Section - Compact
             if (profilePicUrl != null && username != null)
               Padding(
-                padding: EdgeInsets.all(isLargeScreen ? 16.0 : 12.0),
+                padding: EdgeInsets.all(isLargeScreen ? 14.0 : 12.0),
                 child: Row(
                   children: [
                     GestureDetector(
                       onTap: _navigateToProfile,
                       child: CircleAvatar(
-                        radius: isLargeScreen ? 28 : 24,
+                        radius: isLargeScreen ? 22 : 20,
                         backgroundImage: NetworkImage(profilePicUrl!),
                         onBackgroundImageError: (_, __) => const Icon(Icons.person),
                         backgroundColor: Colors.grey.shade200,
                       ),
                     ),
-                    SizedBox(width: isLargeScreen ? 16 : 12),
+                    SizedBox(width: isLargeScreen ? 12 : 10),
                     Expanded(
                       child: GestureDetector(
                         onTap: _navigateToProfile,
@@ -190,8 +198,8 @@ class _SpaceCardState extends State<SpaceCard> {
                             Text(
                               username!,
                               style: TextStyle(
-                                fontSize: isLargeScreen ? 18 : 16,
-                                fontWeight: FontWeight.bold,
+                                fontSize: isLargeScreen ? 16 : 14,
+                                fontWeight: FontWeight.w600,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -199,25 +207,28 @@ class _SpaceCardState extends State<SpaceCard> {
                             Text(
                               timeAgo,
                               style: TextStyle(
-                                fontSize: isLargeScreen ? 14 : 12,
-                                color: Colors.grey,
+                                fontSize: isLargeScreen ? 12 : 11,
+                                color: Colors.grey.shade600,
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    // Category Chip
-                    // Chip(
-                    //   label: Text(
-                    //     widget.space.categoryName,
-                    //     style: TextStyle(
-                    //       fontSize: isLargeScreen ? 14 : 12,
-                    //       color: Colors.white,
-                    //     ),
-                    //   ),
-                    //   backgroundColor: Colors.blue,
-                    // ),
+                    // Category chip - compact
+                    Chip(
+                      label: Text(
+                        widget.space.categoryName,
+                        style: TextStyle(
+                          fontSize: isLargeScreen ? 11 : 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      backgroundColor: Colors.blue.shade600,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                    ),
                   ],
                 ),
               ),
