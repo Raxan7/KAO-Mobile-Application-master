@@ -64,41 +64,74 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+    
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Explore'),
-      ),
-      drawer: PersistentDrawer(
-        userId: userId,
-        userName: userName,
-        userEmail: userEmail,
-        onThemeChanged: widget.onThemeChanged,
-        isLoggedIn: isLoggedIn,
-      ),
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
-            label: 'Explore',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book),
-            label: 'Bookings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
+      appBar: !isDesktop
+          ? AppBar(
+              title: const Text('Explore'),
+            )
+          : null,
+      // Show drawer only on mobile, not on desktop
+      drawer: !isDesktop
+          ? PersistentDrawer(
+              userId: userId,
+              userName: userName,
+              userEmail: userEmail,
+              onThemeChanged: widget.onThemeChanged,
+              isLoggedIn: isLoggedIn,
+            )
+          : null,
+      body: Row(
+        children: [
+          if (isDesktop)
+            PersistentDrawer(
+              userId: userId,
+              userName: userName,
+              userEmail: userEmail,
+              onThemeChanged: widget.onThemeChanged,
+              isLoggedIn: isLoggedIn,
+            ),
+          Expanded(
+            child: Column(
+              children: [
+                if (isDesktop)
+                  AppBar(
+                    title: const Text('Explore'),
+                    automaticallyImplyLeading: false,
+                  ),
+                Expanded(
+                  child: _pages[_selectedIndex],
+                ),
+                if (!isDesktop)
+                  BottomNavigationBar(
+                    items: const <BottomNavigationBarItem>[
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.explore),
+                        label: 'Explore',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.book),
+                        label: 'Bookings',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.search),
+                        label: 'Search',
+                      ),
+                    ],
+                    currentIndex: _selectedIndex,
+                    selectedItemColor: Colors.blueAccent,
+                    unselectedItemColor: Colors.grey,
+                    onTap: (index) {
+                      setState(() {
+                        _selectedIndex = index;
+                      });
+                    },
+                  ),
+              ],
+            ),
           ),
         ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
       ),
     );
   }

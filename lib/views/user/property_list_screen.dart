@@ -6,7 +6,6 @@ import '../../models/user_property.dart';
 import '../../services/api_service.dart';
 import '../../widgets/persistent_drawer.dart';
 import 'spaces_list_page.dart';
-import 'package:flutter/foundation.dart';
 
 class PropertyListScreen extends StatefulWidget {
   final String? userId;
@@ -217,7 +216,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
               iconTheme: const IconThemeData(color: Colors.black),
             )
           : null,
-      // Changed this condition to show drawer on mobile regardless of platform
+      // Show drawer only on mobile, not on desktop
       drawer: !isDesktop
           ? PersistentDrawer(
               userId: widget.userId,

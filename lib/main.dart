@@ -72,6 +72,12 @@ class _MyAppState extends State<MyApp> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return _dataLoaded
         ? MaterialApp(
@@ -99,10 +105,5 @@ class _MyAppState extends State<MyApp> {
           )
         : const Center(child: CircularProgressIndicator());
   }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
 }
+

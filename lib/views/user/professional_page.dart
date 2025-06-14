@@ -162,20 +162,18 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
       final profile = await _apiService.getBusinessProfile(int.parse(_userId!));
       print('Received profile data: $profile');
 
-      if (profile != null) {
-        // Save category, location, website URL, and phone to shared preferences
-        await prefs.setString('category_id', profile['industry_category'].toString());
-        await prefs.setString('business_location', profile['business_location'] ?? '');
-        await prefs.setString('business_website', profile['business_website'] ?? '');
-        await prefs.setString('business_phone', profile['business_phone'] ?? '');
+      // Save category, location, website URL, and phone to shared preferences
+      await prefs.setString('category_id', profile['industry_category'].toString());
+      await prefs.setString('business_location', profile['business_location'] ?? '');
+      await prefs.setString('business_website', profile['business_website'] ?? '');
+      await prefs.setString('business_phone', profile['business_phone'] ?? '');
 
-        // Log the values being set
-        print('Set category_id: ${profile['industry_category']}');
-        print('Set business_location: ${profile['business_location']}');
-        print('Set business_website: ${profile['business_website']}');
-        print('Set business_phone: ${profile['business_phone']}');
-      }
-
+      // Log the values being set
+      print('Set category_id: ${profile['industry_category']}');
+      print('Set business_location: ${profile['business_location']}');
+      print('Set business_website: ${profile['business_website']}');
+      print('Set business_phone: ${profile['business_phone']}');
+    
       if (mounted) {
         setState(() {
           _businessProfile = profile;
