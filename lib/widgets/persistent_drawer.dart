@@ -86,7 +86,6 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 600;
-    final headerHeight = isDesktop ? 200.0 : 150.0;
     final avatarSize = isDesktop ? 80.0 : 60.0;
     final nameFontSize = isDesktop ? 24.0 : 20.0;
     final emailFontSize = isDesktop ? 18.0 : 16.0;
@@ -102,34 +101,40 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
         padding: EdgeInsets.zero,
         children: <Widget>[
           UserAccountsDrawerHeader(
-            accountName: widget.isLoggedIn
+            accountName: widget.isLoggedIn && widget.userName != null && widget.userName!.isNotEmpty
                 ? Text(
-                    widget.userName ?? 'Anonymous',
+                    widget.userName!,
                     style: TextStyle(
                       fontSize: nameFontSize,
                       fontWeight: FontWeight.bold,
                     ),
                   )
                 : Text(
-                    'Log in to your account',
+                    'Welcome, Guest',
                     style: TextStyle(
                       fontSize: nameFontSize,
                       color: Colors.white,
                     ),
                   ),
-            accountEmail: widget.isLoggedIn
+            accountEmail: widget.isLoggedIn && widget.userEmail != null && widget.userEmail!.isNotEmpty
                 ? Text(
-                    widget.userEmail ?? 'anonymous user',
+                    widget.userEmail!,
                     style: TextStyle(fontSize: emailFontSize),
                   )
-                : const Text(''),
+                : Text(
+                    'Please log in to continue',
+                    style: TextStyle(
+                      fontSize: emailFontSize,
+                      color: Colors.white70,
+                    ),
+                  ),
             currentAccountPicture: CircleAvatar(
               radius: avatarSize / 2,
               backgroundColor: _isDarkMode ? Colors.purple : Colors.white,
               child: Text(
                 widget.isLoggedIn && widget.userName != null && widget.userName!.isNotEmpty
-                    ? widget.userName![0]
-                    : 'A',
+                    ? widget.userName![0].toUpperCase()
+                    : '?',
                 style: TextStyle(fontSize: avatarSize * 0.5),
               ),
             ),
@@ -138,13 +143,16 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
             ),
             margin: EdgeInsets.zero,
           ),
-          if (!widget.isLoggedIn)
+          // Only show login option if user is not properly logged in
+          if (!widget.isLoggedIn || widget.userName == null || widget.userName!.isEmpty)
             ListTile(
               leading: Icon(Icons.login, size: iconSize),
               title: Text('Login', style: TextStyle(fontSize: titleFontSize)),
+              contentPadding: listTilePadding,
               onTap: () => _navigateTo(context, const LoginPage()),
             ),
-          if (widget.isLoggedIn) ...[
+          // Only show authenticated user options if properly logged in
+          if (widget.isLoggedIn && widget.userName != null && widget.userName!.isNotEmpty) ...[
             ListTile(
               leading: Icon(Icons.apartment, size: iconSize),
               title: Text('HOME', style: TextStyle(fontSize: titleFontSize)),
@@ -222,16 +230,6 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
               subtitle: Text('Report issues or suggest improvements', 
                 style: TextStyle(fontSize: isDesktop ? 14.0 : 12.0)),
             ),
-
-            // TEMPORARY: Spaces List Page
-            // TODO: Remove this section later
-            // ListTile(
-            //   leading: Icon(Icons.list, size: iconSize),
-            //   title: Text('Spaces List', style: TextStyle(fontSize: titleFontSize)),
-            //   contentPadding: listTilePadding,
-            //   onTap: () => _navigateTo(context, const SpacesListPage()),
-            // ),
-            // END TEMPORARY
 
             const Divider(),
             if (_savedSessions.isNotEmpty) ...[
