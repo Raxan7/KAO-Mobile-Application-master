@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:kao_app/services/api_service.dart';
 import 'package:kao_app/views/user/professional_onboarding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:kao_app/views/user/add_space_page.dart';
+import 'package:kao_app/views/dalali/add_property_page.dart';
 import '../login_page.dart';
 
 class ProfessionalPage extends StatefulWidget {
@@ -42,6 +42,10 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
       );
+    } else {
+      setState(() {
+        _userId = userId;
+      });
     }
   }
 
@@ -124,8 +128,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _username = prefs.getString('name') ?? "User";
-      final userIdString = prefs.getString('userId');
-      _userId = userIdString != null ? int.tryParse(userIdString)?.toString() : null;
+      // _userId is now set in _checkLoginStatus, so just print it here
       print('User ID from shared prefs: $_userId');
     });
 
@@ -141,7 +144,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
 
     try {
       print('Checking if business profile exists for user $_userId');
-      final hasProfile = await _apiService.checkBusinessProfileExists(int.parse(_userId!));
+      final hasProfile = await _apiService.checkBusinessProfileExists(_userId!);
       print('Profile exists check result: $hasProfile');
 
       if (!hasProfile) {
@@ -159,7 +162,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
       }
 
       print('Fetching business profile for user $_userId');
-      final profile = await _apiService.getBusinessProfile(int.parse(_userId!));
+      final profile = await _apiService.getBusinessProfile(_userId!);
       print('Received profile data: $profile');
 
       // Save category, location, website URL, and phone to shared preferences
@@ -201,7 +204,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
       context,
       MaterialPageRoute(
         builder: (context) => BusinessProfileEditScreen(
-          userId: int.parse(_userId!),
+          userId: _userId!,
           businessProfile: _businessProfile ?? {},
         ),
       ),
@@ -311,7 +314,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
 
     if (_showOnboarding) {
       return ProfessionalOnboarding(
-        userId: int.parse(_userId!),
+        userId: _userId!,
         onComplete: () async => await _loadData(),
         onSkip: _skipOnboarding,
       );
@@ -548,10 +551,22 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
             'Add Property',
             'Create new listing',
             Colors.red,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AddSpacePage()),
-            ),
+            onTap: () {
+              if (_userId != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddPropertyPage(
+                      userId: _userId!,
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please log in to add a property')),
+                );
+              }
+            },
           ),
           _buildMenuItem(
             Icons.inbox,
@@ -607,7 +622,7 @@ class _ProfessionalPageState extends State<ProfessionalPage> {
 }
 
 class BusinessProfileEditScreen extends StatefulWidget {
-  final int userId;
+  final String userId;
   final Map<String, dynamic> businessProfile;
 
   const BusinessProfileEditScreen({

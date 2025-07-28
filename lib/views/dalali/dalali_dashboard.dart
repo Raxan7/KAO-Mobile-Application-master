@@ -6,7 +6,7 @@ import 'detailed_enquiries_page.dart';
 import 'messaging_page.dart'; // Import the detailed enquiries page
 
 class DalaliDashboard extends StatefulWidget {
-  final int userId;
+  final String userId;
 
   const DalaliDashboard({super.key, required this.userId});
 
@@ -17,34 +17,37 @@ class DalaliDashboard extends StatefulWidget {
 class _DalaliDashboardState extends State<DalaliDashboard> {
   late Future<Map<String, int>> _overview;
   late Future<List<dynamic>> _enquiriesFuture;
-  late Future<List<Map<String, dynamic>>>
-      _notificationsFuture; // Add notifications future
-  final Map<int, String> _userNamesCache = {}; // Cache for user names
+  late Future<List<Map<String, dynamic>>> _notificationsFuture;
+  final Map<String, String> _userNamesCache = {}; // Cache for user names
+  final Map<String, String> _profilePicturesCache = {};
+  final ApiService _apiService = ApiService(); // Create instance
 
   @override
   void initState() {
     super.initState();
-    _overview = ApiService.fetchPropertiesOverview(widget.userId);
-    _enquiriesFuture = ApiService.fetchUnrepliedEnquiries(widget.userId);
-    _notificationsFuture = ApiService.fetchNotifications(
-        widget.userId); // Initialize notifications future
+    _overview = _apiService.fetchPropertiesOverview(widget.userId);
+    _enquiriesFuture = _apiService.fetchUnrepliedEnquiries(widget.userId);
+    _notificationsFuture = _apiService.fetchNotifications(widget.userId);
   }
 
   // Function to fetch and cache the user name
-  Future<String> _getUserName(int userId) async {
+  Future<String> _getUserName(String userId) async {
     if (_userNamesCache.containsKey(userId)) {
       return _userNamesCache[userId]!; // Return cached name if available
     } else {
       try {
         // Fetch user details from API and get the name
-        final userDetails = await ApiService.fetchUserDetails(userId);
-        final userName = userDetails['name'] ?? 'Unknown User';
-        _userNamesCache[userId] = userName; // Cache the fetched name
-        return userName;
+        final responseData = await _apiService.fetchSenderDetails(userId);
+        if (responseData.isNotEmpty) {
+          _userNamesCache[userId] = responseData['name'] ?? 'Unknown User';
+          _profilePicturesCache[userId] = "${responseData['profile_picture'] ?? ''}";
+          return _userNamesCache[userId]!;
+        }
       } catch (e) {
-        return 'Unknown User';
+        print('Error fetching user name: $e');
       }
     }
+    return 'Unknown User';
   }
 
   @override
@@ -200,7 +203,7 @@ class _DalaliDashboardState extends State<DalaliDashboard> {
           return Column(
             children: enquiries.map((enquiry) {
               return FutureBuilder<String>(
-                future: _getUserName(int.parse(enquiry['sender_id'])),
+                future: _getUserName(enquiry['sender_id'].toString()),
                 builder: (context, userSnapshot) {
                   final userName = userSnapshot.data ?? 'Loading...';
                   return Card(
@@ -216,8 +219,8 @@ class _DalaliDashboardState extends State<DalaliDashboard> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => MessagingPage(
-                                messageId: int.parse(enquiry['message_id']),
-                                propertyId: int.parse(enquiry['property_id']),
+                                messageId: enquiry['message_id'].toString(),
+                                propertyId: enquiry['property_id'].toString(),
                               ),
                             ),
                           );
@@ -250,9 +253,9 @@ class _DalaliDashboardState extends State<DalaliDashboard> {
   Widget _buildNotifications(List<Map<String, dynamic>> notifications) {
     return Column(
       children: notifications.map((notification) {
-        final userId = int.parse(notification['user_id']);
-        final propertyId = int.parse(notification['property_id']);
-        final notificationId = int.parse(notification['notification_id']);
+        final userId = notification['user_id'].toString();
+        final propertyId = notification['property_id'].toString();
+        final notificationId = notification['notification_id'].toString();
 
         print(propertyId);
 
@@ -273,7 +276,7 @@ class _DalaliDashboardState extends State<DalaliDashboard> {
                 trailing: const Icon(Icons.arrow_forward_ios),
                 onTap: () async {
                   // Mark the notification as read
-                  await ApiService.markNotificationAsRead(notificationId);
+                  await _apiService.markNotificationAsRead(notificationId);
 
                   // Navigate to the SenderInfoPage
                   Navigator.push(

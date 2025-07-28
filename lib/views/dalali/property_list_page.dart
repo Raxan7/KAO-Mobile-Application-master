@@ -6,7 +6,7 @@ import 'edit_property_page.dart';
 import 'property_detail_page.dart';
 
 class PropertyListPage extends StatefulWidget {
-  final int userId;
+  final String userId;
 
   const PropertyListPage({super.key, required this.userId});
 
@@ -17,11 +17,12 @@ class PropertyListPage extends StatefulWidget {
 class _PropertyListPageState extends State<PropertyListPage> {
   late Future<List<Property>> _properties;
   bool isDarkMode = false; // Track dark mode state
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
     super.initState();
-    _properties = ApiService.fetchProperties(widget.userId.toString());
+    _properties = _apiService.fetchProperties(widget.userId);
   }
 
   @override
@@ -76,9 +77,8 @@ class _PropertyListPageState extends State<PropertyListPage> {
                         });
                       },
                       onPropertyDeleted: () {
-                        setState(() {
-                          _properties = ApiService.fetchProperties(
-                              widget.userId.toString());
+                        setState(() {                          _properties = _apiService.fetchProperties(
+                            widget.userId.toString());
                         });
                       },
                     ),
@@ -113,6 +113,7 @@ class _PropertyCardState extends State<PropertyCard> {
   int _currentImageIndex = 0;
   late final List<String> _mediaUrls;
   late final bool _hasMultipleImages;
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -251,7 +252,7 @@ class _PropertyCardState extends State<PropertyCard> {
 
                         if (confirm == true) {
                           try {
-                            final result = await ApiService.deleteProperty(
+                            final result = await _apiService.deleteProperty(
                                 widget.property.id.toString());
                             if (result['status'] == 'success') {
                               widget.onPropertyDeleted();

@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 
 class MessagingPage extends StatefulWidget {
-  final int propertyId; // ID of the property
-  final int dalaliId; // ID of the dalali
+  final String propertyId; // ID of the property
+  final String dalaliId; // ID of the dalali
   final String propertyName; // Name of the property
   final String propertyImage; // URL of the property image
   final String initialMessage; // Initial message to send
@@ -26,8 +26,9 @@ class MessagingPage extends StatefulWidget {
 class _MessagingPageState extends State<MessagingPage> {
   final TextEditingController _messageController = TextEditingController();
   List<Map<String, dynamic>> _messages = [];
-  int? _currentUserId; // Replace with the current user ID
+  String? _currentUserId; // Replace with the current user ID
   bool _isDisposed = false; // Track if the widget is disposed
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -45,7 +46,7 @@ class _MessagingPageState extends State<MessagingPage> {
       final userIdString = prefs.getString('userId');
       if (!_isDisposed) {
         setState(() {
-          _currentUserId = userIdString != null ? int.tryParse(userIdString) : null;
+          _currentUserId = userIdString;
         });
       }
     } catch (e) {
@@ -65,7 +66,7 @@ class _MessagingPageState extends State<MessagingPage> {
   void _refreshMessages() async {
     if (_currentUserId == null) return; // Avoid API call if userId is not yet loaded
     try {
-      List<Map<String, dynamic>> messages = await ApiService.fetchMessages(
+      List<Map<String, dynamic>> messages = await _apiService.fetchMessages(
         widget.propertyId,
         _currentUserId!,
         widget.dalaliId,
@@ -83,7 +84,7 @@ class _MessagingPageState extends State<MessagingPage> {
   void _sendInitialMessage() async {
     if (_currentUserId == null) return; // Avoid sending message if userId is not yet loaded
     try {
-      await ApiService.sendMessageForUser(
+      await _apiService.sendMessageForUser(
         senderId: _currentUserId!,
         receiverId: widget.dalaliId,
         propertyId: widget.propertyId,
@@ -104,7 +105,7 @@ class _MessagingPageState extends State<MessagingPage> {
       _messageController.clear();
 
       try {
-        await ApiService.sendMessageForUser(
+        await _apiService.sendMessageForUser(
           senderId: _currentUserId!,
           receiverId: widget.dalaliId,
           propertyId: widget.propertyId,
@@ -123,7 +124,7 @@ class _MessagingPageState extends State<MessagingPage> {
 
   void _removeReaction(int messageId) async {
     try {
-      await ApiService.removeReactionFromMessage(messageId);
+      await _apiService.removeReactionFromMessage(messageId);
       _refreshMessages(); // Refresh the messages to reflect the removed reaction
       Navigator.pop(context);
     } catch (e) {
@@ -214,7 +215,7 @@ class _MessagingPageState extends State<MessagingPage> {
 
   void _deleteMessage(int messageId) async {
     try {
-      await ApiService.deleteMessage(messageId); // 🔥 Call API to delete message
+      await _apiService.deleteMessage(messageId); // 🔥 Call API to delete message
       _refreshMessages(); // Refresh chat after deletion
     } catch (e) {
       print("Failed to delete message: $e");
@@ -223,7 +224,7 @@ class _MessagingPageState extends State<MessagingPage> {
 
   void _reactToMessage(int messageId, String reaction) async {
     try {
-      await ApiService.reactToMessage(messageId, reaction);
+      await _apiService.reactToMessage(messageId, reaction);
       _refreshMessages();
     } catch (e) {
       print('Failed to react to message: $e');

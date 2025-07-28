@@ -45,7 +45,7 @@ class _RegisterPageState extends State<RegisterPage> {
         role: _selectedRole, // Pass the selected role to the API
       );
 
-      if (result['status'] == 'success') {
+      if (result['status'] == true || result['status'] == 'success') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration Successful!')),
         );
@@ -58,8 +58,9 @@ class _RegisterPageState extends State<RegisterPage> {
           MaterialPageRoute(builder: (context) => const LoginPage()),
         );
       } else {
+        final msg = result['message']?.toString() ?? 'Registration failed.';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${result['message']}')),
+          SnackBar(content: Text(msg)),
         );
       }
 

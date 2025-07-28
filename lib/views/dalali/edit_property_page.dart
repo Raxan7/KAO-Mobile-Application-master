@@ -25,6 +25,7 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
   final _formKey = GlobalKey<FormState>();
   final List<File?> _selectedImages = [];
   final List<File> _localImages = [];
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -71,14 +72,14 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
       try {
         // Update property details
         final response =
-            await ApiService.updateProperty(widget.property.id, updatedData);
+            await _apiService.updateProperty(widget.property.id, updatedData);
 
         if (response['status'] == 'success') {
           // Upload new media files, if any
           if (_selectedImages.isNotEmpty) {
             for (var imageFile in _selectedImages) {
-              await ApiService.uploadPropertyMedia(
-                widget.property.id.toString(),
+              await _apiService.uploadPropertyMedia(
+                widget.property.id, // Pass as String
                 'image', // media type
                 imageFile!.path, // file path
                 false, // isPrimaryMedia
@@ -137,7 +138,7 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
       final imageName = mediaList[mediaList.length - 1];
 
       final response =
-          (await ApiService.deletePropertyMedia(imageName));
+          (await _apiService.deletePropertyMedia(imageName));
       if (response['status'] == 'success') {
         setState(() {
           widget.property.media.removeAt(index);

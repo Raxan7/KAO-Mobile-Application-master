@@ -37,6 +37,7 @@ class _SpacesListPageState extends State<SpacesListPage> {
   final List<String> _categoryIds = ['0', '1', '2', '3', '4', '5'];
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // Add this key
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -55,7 +56,7 @@ class _SpacesListPageState extends State<SpacesListPage> {
 
   void _loadSpaces() {
     setState(() {
-      _spacesFuture = ApiService.fetchSpaces(
+      _spacesFuture = _apiService.fetchSpaces(
         categoryId: _categoryIds[_selectedTabIndex],
         subcategoryId: widget.subcategoryId,
         userId: widget.userId,

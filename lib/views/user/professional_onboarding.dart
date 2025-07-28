@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data'; // For web image bytes
 
 class ProfessionalOnboarding extends StatefulWidget {
-  final int userId;
+  final String userId;
   final VoidCallback? onComplete;
   final VoidCallback? onSkip;
 
@@ -115,7 +115,6 @@ class _ProfessionalOnboardingState extends State<ProfessionalOnboarding> {
       }
 
       final businessProfile = {
-        'action': 'create',
         'user_id': widget.userId.toString(),
         'business_name': _nameController.text.trim(),
         'business_email': _emailController.text.trim(),

@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 class UserMessagingPage extends StatefulWidget {
   final int messageId; // ID of the message to display
-  final int propertyId;
+  final String propertyId;
 
   const UserMessagingPage({
     super.key,
@@ -20,10 +20,11 @@ class UserMessagingPage extends StatefulWidget {
 class _UserMessagingPageState extends State<UserMessagingPage> {
   final TextEditingController _messageController = TextEditingController();
   List<Map<String, dynamic>> _messages = [];
-  int _currentUserId = 1;
+  String _currentUserId = '1';
   bool _isDisposed = false;
   final ScrollController _scrollController = ScrollController();
   final Map<int, String> _userNamesCache = {};
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -49,8 +50,7 @@ class _UserMessagingPageState extends State<UserMessagingPage> {
     final userIdString = prefs.getString('userId'); // Retrieve as a String
     if (!_isDisposed) {
       setState(() {
-        _currentUserId =
-            userIdString != null ? int.tryParse(userIdString) ?? 1 : 1;
+        _currentUserId = userIdString ?? '1';
       });
     }
   }
@@ -66,7 +66,7 @@ class _UserMessagingPageState extends State<UserMessagingPage> {
 
   void _refreshMessages() async {
     try {
-      List<Map<String, dynamic>> messages = await ApiService.fetchMessagesById(
+      List<Map<String, dynamic>> messages = await _apiService.fetchMessagesById(
           widget.messageId, widget.propertyId);
       if (!_isDisposed) {
         setState(() {
@@ -89,8 +89,8 @@ class _UserMessagingPageState extends State<UserMessagingPage> {
       _messageController.clear();
 
       try {
-        await ApiService.replyToUserMessage(
-          userId: (_messages[0]['receiver_id']),
+        await _apiService.replyToUserMessage(
+          userId: (_messages[0]['receiver_id'].toString()),
           dalaliId: _currentUserId,
           propertyId: widget.propertyId,
           message: messageText,
@@ -114,7 +114,7 @@ class _UserMessagingPageState extends State<UserMessagingPage> {
 
   void _removeReaction(int messageId) async {
     try {
-      await ApiService.removeReactionFromMessage(messageId);
+      await _apiService.removeReactionFromMessage(messageId);
       _refreshMessages(); // Refresh the messages to reflect the removed reaction
       Navigator.pop(context);
     } catch (e) {
@@ -206,7 +206,7 @@ class _UserMessagingPageState extends State<UserMessagingPage> {
 
   void _deleteMessage(int messageId) async {
     try {
-      await ApiService.deleteMessage(messageId); // 🔥 Call API to delete message
+      await _apiService.deleteMessage(messageId); // 🔥 Call API to delete message
       _refreshMessages(); // Refresh chat after deletion
     } catch (e) {
       print("Failed to delete message: $e");
@@ -215,7 +215,7 @@ class _UserMessagingPageState extends State<UserMessagingPage> {
 
   void _reactToMessage(int messageId, String reaction) async {
     try {
-      await ApiService.reactToMessage(messageId, reaction);
+      await _apiService.reactToMessage(messageId, reaction);
       _refreshMessages();
     } catch (e) {
       // print('Failed to react to message: $e');
@@ -255,7 +255,7 @@ class _UserMessagingPageState extends State<UserMessagingPage> {
     } else {
       try {
         // Fetch user details from API and get the name
-        final userDetails = await ApiService.fetchUserDetails(userId);
+        final userDetails = await _apiService.fetchUserDetails(userId);
         final userName = userDetails['name'] ?? 'Unknown User';
         _userNamesCache[userId] = userName; // Cache the fetched name
         return userName;

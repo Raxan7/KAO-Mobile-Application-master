@@ -86,7 +86,7 @@ class AppRoutes {
                 return const Center(child: Text('Error loading user details'));
               } else {
                 final userDetails = snapshot.data!;
-                final userId = int.tryParse(userDetails['userId'] ?? '0') ?? 0;
+                final userId = userDetails['userId'] ?? '';
                 return DalaliDashboard(
                   userId: userId,
                 );
@@ -102,14 +102,27 @@ class AppRoutes {
                 return const Center(child: Text('Error loading user details'));
               } else {
                 final userDetails = snapshot.data!;
-                final userId = int.tryParse(userDetails['userId'] ?? '0') ?? 0;
+                final userId = userDetails['userId'] ?? '';
                 return PropertyListPage(
                   userId: userId,
                 );
               }
             },
           ),
-      addProperty: (context) => const AddPropertyPage(),
+      addProperty: (context) => FutureBuilder<Map<String, String?>>(
+            future: getUserDetails(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError || snapshot.data == null) {
+                return const Center(child: Text('Error loading user details'));
+              } else {
+                final userDetails = snapshot.data!;
+                final userId = userDetails['userId'] ?? '0';
+                return AddPropertyPage(userId: userId);
+              }
+            },
+          ),
       propertyManagement: (context) => const PropertyManagementPage(),
       userPropertyListScreen: (context) => FutureBuilder<Map<String, String?>>(
             future: getUserDetails(),

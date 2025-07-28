@@ -73,7 +73,7 @@ class _UserProfileManagementPageState extends State<UserProfileManagementPage> {
         _userInfoFuture.then((userInfo) {
             final userIdString = userInfo['userId'];
             if (userIdString != null) {
-              final userId = int.parse(userIdString);
+              final userId = userIdString;
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => BrokerProfilePage(userId: userId)),

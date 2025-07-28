@@ -88,7 +88,7 @@ class _GalleryState extends State<Gallery> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => PropertyDetail(
-                              propertyId: int.parse(property['property'].propertyId), // Pass propertyId
+                              propertyId: property['property'].propertyId, // Pass propertyId as String
                             ),
                           ),
                         );

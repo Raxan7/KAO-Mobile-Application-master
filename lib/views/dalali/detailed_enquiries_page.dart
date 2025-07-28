@@ -7,7 +7,7 @@ import '../../services/api_service.dart';
 import 'messaging_page.dart';
 
 class DetailedEnquiriesPage extends StatefulWidget {
-  final int userId;
+  final String userId;
 
   const DetailedEnquiriesPage({super.key, required this.userId});
 
@@ -20,9 +20,10 @@ class _DetailedEnquiriesPageState extends State<DetailedEnquiriesPage> {
   String? _error;
   Timer? _timer;
   bool _initialLoad = true;
-  final Map<int, String> _userNamesCache = {};
-  final Map<int, String> _profilePicturesCache = {};
-  final Map<int, Map<String, dynamic>> _propertyCache = {};
+  final Map<String, String> _userNamesCache = {};
+  final Map<String, String> _profilePicturesCache = {};
+  final Map<String, Map<String, dynamic>> _propertyCache = {};
+  final ApiService _apiService = ApiService();
   bool _hasUnrepliedMessages = false;
 
   @override
@@ -43,7 +44,7 @@ class _DetailedEnquiriesPageState extends State<DetailedEnquiriesPage> {
   }
 
   Future<void> _fetchUnrepliedCount() async {
-    int count = await ApiService.fetchUnrepliedMessageCount(widget.userId);
+    int count = await _apiService.fetchUnrepliedMessageCount(widget.userId);
     if (mounted) {
       setState(() {
         _hasUnrepliedMessages = count > 0;
@@ -60,7 +61,7 @@ class _DetailedEnquiriesPageState extends State<DetailedEnquiriesPage> {
         });
       }
 
-      final enquiries = await ApiService.fetchAllEnquiriesUser(widget.userId);
+      final enquiries = await _apiService.fetchAllEnquiriesUser(widget.userId);
       if (mounted) {
         setState(() {
           _enquiries = enquiries;
@@ -68,15 +69,15 @@ class _DetailedEnquiriesPageState extends State<DetailedEnquiriesPage> {
         });
 
         for (var enquiry in enquiries) {
-          int senderId = int.tryParse(enquiry['sender_id'].toString()) ?? 0;
-          int receiverId = int.tryParse(enquiry['receiver_id'].toString()) ?? 0;
-          int otherUserId = (widget.userId == senderId) ? receiverId : senderId;
-          int propertyId = int.tryParse(enquiry['property_id'].toString()) ?? 0;
+          var senderId = enquiry['sender_id'];
+          var receiverId = enquiry['receiver_id'];
+          var otherUserId = (widget.userId == senderId) ? receiverId : senderId;
+          var propertyId = enquiry['property_id'];
 
-          if (otherUserId > 0 && !_userNamesCache.containsKey(otherUserId)) {
+          if (otherUserId != null && !_userNamesCache.containsKey(otherUserId)) {
             _fetchUserDetails(otherUserId);
           }
-          if (propertyId > 0 && !_propertyCache.containsKey(propertyId)) {
+          if (propertyId != null && !_propertyCache.containsKey(propertyId)) {
             _fetchPropertyDetails(propertyId);
           }
         }
@@ -100,8 +101,8 @@ class _DetailedEnquiriesPageState extends State<DetailedEnquiriesPage> {
         if (responseData['success'] == true) {
           if (mounted) {
             setState(() {
-              _userNamesCache[userId] = responseData['data']['name'] ?? 'Unknown User';
-              _profilePicturesCache[userId] = "$baseUrl/images/users/${responseData['data']['profile_picture'] ?? ''}";
+              _userNamesCache[userId.toString()] = responseData['data']['name'] ?? 'Unknown User';
+              _profilePicturesCache[userId.toString()] = "$baseUrl/images/users/${responseData['data']['profile_picture'] ?? ''}";
             });
           }
         }
@@ -113,10 +114,10 @@ class _DetailedEnquiriesPageState extends State<DetailedEnquiriesPage> {
 
   Future<void> _fetchPropertyDetails(int propertyId) async {
     try {
-      final propertyDetails = await ApiService.fetchPropertyDetailForUser(propertyId);
+      final propertyDetails = await _apiService.fetchPropertyDetailForUser(propertyId.toString());
       if (mounted) {
         setState(() {
-          _propertyCache[propertyId] = propertyDetails;
+          _propertyCache[propertyId.toString()] = propertyDetails;
         });
       }
     } catch (e) {
@@ -140,12 +141,12 @@ class _DetailedEnquiriesPageState extends State<DetailedEnquiriesPage> {
                         itemCount: _enquiries!.length,
                         itemBuilder: (context, index) {
                           final enquiry = _enquiries![index];
-                          int senderId = int.tryParse(enquiry['sender_id'].toString()) ?? 0;
-                          int receiverId = int.tryParse(enquiry['receiver_id'].toString()) ?? 0;
-                          int otherUserId = (widget.userId == senderId) ? receiverId : senderId;
+                          var senderId = enquiry['sender_id'];
+                          var receiverId = enquiry['receiver_id'];
+                          var otherUserId = (widget.userId == senderId) ? receiverId : senderId;
                           final userName = _userNamesCache[otherUserId] ?? 'Unknown User';
                           final profilePicture = _profilePicturesCache[otherUserId] ?? '';
-                          final propertyId = int.tryParse(enquiry['property_id'].toString()) ?? 0;
+                          final propertyId = enquiry['property_id'];
 
                           return Card(
                             margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -164,14 +165,14 @@ class _DetailedEnquiriesPageState extends State<DetailedEnquiriesPage> {
                                   ? const Icon(Icons.mark_unread_chat_alt, color: Colors.green)
                                   : null,
                               onTap: () {
-                                int messageId = int.tryParse(enquiry['message_id'].toString()) ?? 0;
-                                if (messageId > 0) {
+                                var messageId = enquiry['message_id'];
+                                if (messageId != null) {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => MessagingPage(
                                         messageId: messageId,
-                                        propertyId: propertyId,
+                                        propertyId: propertyId.toString(),
                                       ),
                                     ),
                                   );

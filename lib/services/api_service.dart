@@ -1,5 +1,9 @@
-import 'package:http/http.dart' as http;
+// import 'package:http/http.dart' as http; // Unused
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
+import 'dart:math';
+import 'dart:async';
+// import 'dart:typed_data'; // Duplicate import removed
 import '../models/hostel.dart';
 import '../models/hotel.dart';
 import '../models/booking.dart';
@@ -11,177 +15,303 @@ import '../models/user_property.dart';
 import '../models/space.dart'; 
 import '../models/space_category.dart';
 import 'package:flutter/foundation.dart'; // Import foundation.dart for kIsWeb
-import 'dart:io'; // Import dart:io for File class
-import 'package:path_provider/path_provider.dart'; // Import path_provider for getTemporaryDirectory
+
+import 'package:cross_file/cross_file.dart';
+import 'package:universal_html/html.dart' as html;
+import 'dart:typed_data';
+import 'dart:io' as io show File;
+// import 'package:path_provider/path_provider.dart'; // Unused import removed
+import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import '../utils/constants.dart';
 
 class ApiService {
   static const String imageUrl = baseUrl;
   static const String baseUrl = apiUrl;
 
-  Future<List<Hotel>> fetchHotels() async {
-    final response = await http.get(Uri.parse('$baseUrl/hotels.php'));
-    // print(response.body);
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      List<dynamic> data = json.decode(response.body);
-      return data.map((hotel) => Hotel.fromJson(hotel)).toList();
+  Future<Uint8List> _getFileBytes(dynamic fileInput) async {
+    if (kIsWeb) {
+      if (fileInput is XFile) {
+        return await fileInput.readAsBytes();
+      } else if (fileInput is String && fileInput.startsWith('blob:')) {
+        final completer = Completer<Uint8List>();
+        final xhr = html.HttpRequest();
+        xhr.open('GET', fileInput);
+        xhr.responseType = 'arraybuffer';
+        xhr.onLoad.listen((_) => completer.complete(Uint8List.fromList(xhr.response as List<int>)));
+        xhr.onError.listen(completer.completeError);
+        xhr.send();
+        return await completer.future;
+      } else if (fileInput is Uint8List) {
+        return fileInput;
+      }
     } else {
+      // Mobile/Desktop
+      if (fileInput is XFile) {
+        return await fileInput.readAsBytes();
+      } else if (fileInput is io.File) {
+        return await fileInput.readAsBytes();
+      } else if (fileInput is String) {
+        return await io.File(fileInput).readAsBytes();
+      } else if (fileInput is Uint8List) {
+        return fileInput;
+      }
+    }
+    throw Exception('Unsupported file type');
+  }
+
+  Future<List<Hotel>> fetchHotels() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('hotels')
+          .select()
+          .order('created_at', ascending: false);
+      
+      return response.map<Hotel>((hotel) => Hotel.fromJson(hotel)).toList();
+    } catch (e) {
+      print('Error fetching hotels: $e');
       throw Exception('Failed to load hotels');
     }
   }
 
   Future<List<Motel>> fetchMotels() async {
-    final response = await http.get(Uri.parse('$baseUrl/motels.php'));
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      List<dynamic> data = json.decode(response.body);
-      return data.map((motel) => Motel.fromJson(motel)).toList();
-    } else {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('motels')
+          .select()
+          .order('created_at', ascending: false);
+      
+      return response.map<Motel>((motel) => Motel.fromJson(motel)).toList();
+    } catch (e) {
+      print('Error fetching motels: $e');
       throw Exception('Failed to load motels');
     }
   }
 
   Future<List<Hostel>> fetchHostels() async {
-    final response = await http.get(Uri.parse('$baseUrl/hostels.php'));
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      List<dynamic> data = json.decode(response.body);
-      return data.map((hostel) => Hostel.fromJson(hostel)).toList();
-    } else {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('hostels')
+          .select()
+          .order('id', ascending: false);
+      
+      return response.map<Hostel>((hostel) => Hostel.fromJson(hostel)).toList();
+    } catch (e) {
+      print('Error fetching hostels: $e');
       throw Exception('Failed to load hostels');
     }
   }
 
   Future<List<Lodge>> fetchLodges() async {
-    final response = await http.get(Uri.parse('$baseUrl/lodges.php'));
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      List<dynamic> data = json.decode(response.body);
-      return data.map((lodge) => Lodge.fromJson(lodge)).toList();
-    } else {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('lodges')
+          .select()
+          .order('id', ascending: false);
+      
+      return response.map<Lodge>((lodge) => Lodge.fromJson(lodge)).toList();
+    } catch (e) {
+      print('Error fetching lodges: $e');
       throw Exception('Failed to load lodges');
     }
   }
 
   Future<Map<String, dynamic>> loginUser(String email, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/login.php'), // Updated endpoint
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }, // Correct content type for form data
-      body: {
-        'email': email,
-        'password': password,
-      },
-    );
+    try {
+      final supabase = Supabase.instance.client;
+      final AuthResponse response = await supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return json.decode(response.body); // Return the response body
-    } else {
-      throw Exception('Failed to login'); // Handle errors
+      print("-----------------------------------------------------------------");
+      print('LOGIN RESPONSE: ${response.user!.id}, Email: ${response.user!.email}');
+      print("-----------------------------------------------------------------");
+      
+      // Get user details from the profile table
+      final userData = await supabase
+          .from('user_cred')
+          .select()
+          .eq('id', response.user!.id)
+          .single();
+      
+      return {
+        'status': 'success',
+        'message': 'Login successful',
+        'userId': response.user!.id,
+        'email': response.user!.email,
+        'token': response.session!.accessToken,
+        'role': userData['role'] ?? 'user',
+        'name': userData['name'] ?? '',
+        'phone': userData['phone'] ?? '',
+        'user': userData
+      };
+    } catch (e) {
+      print('Error logging in: $e');
+      return {
+        'status': 'error',
+        'message': 'Login failed: $e'
+      };
     }
   }
 
-  Future<Map<String, dynamic>> getUserProfile(String token) async {
-    final response = await http.get(
-      Uri.parse(
-          '$baseUrl/user/profile.php'), // Update with your profile endpoint
-      headers: {
-        'Authorization':
-            'Bearer $token', // Send the token in the Authorization header
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return json.decode(response.body); // Return the response as a Map
-    } else {
-      throw Exception('Failed to load user profile'); // Handle errors
+  Future<Map<String, dynamic>> getUserProfile(String userId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      
+      // Get the user profile from the user_cred table
+      final profile = await supabase
+          .from('user_cred')
+          .select()
+          .eq('id', userId)
+          .single();
+          
+      return {
+        'status': 'success',
+        'data': profile
+      };
+    } catch (e) {
+      print('Error fetching user profile: $e');
+      throw Exception('Failed to load user profile: $e');
     }
   }
 
   // Add the fetchRoomDetails function
   Future<Map<String, dynamic>> fetchRoomDetails(
       String roomId, String accommodationType) async {
-    final response = await http.get(
-      Uri.parse(
-          '$baseUrl/${accommodationType}_room_detail.php?room_id=$roomId'), // Room details API endpoint
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return json.decode(response.body); // Return room details as a Map
-    } else {
-      throw Exception('Failed to load room details'); // Handle errors
+    try {
+      final supabase = Supabase.instance.client;
+      
+      print('Fetching room details from Supabase');
+      print('Room ID: $roomId, Accommodation Type: $accommodationType');
+      
+      // Fetch room details from the rooms table
+      final response = await supabase
+          .from('rooms')
+          .select('*, property_types(name)')
+          .eq('id', roomId)
+          .single();
+      
+      print('Room details fetched successfully');
+      
+      return {
+        'status': true,
+        'data': response
+      };
+    } catch (e) {
+      print('❌ FETCH ROOM DETAILS ERROR: Exception: $e');
+      print('❌ FETCH ROOM DETAILS ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to load room details: $e');
     }
   }
 
   // Function to fetch bookings for a specific user
   Future<List<Booking>> fetchUserBookings(String userId) async {
-    final response =
-        await http.get(Uri.parse('$baseUrl/user_bookings.php?user_id=$userId'));
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      Map<String, dynamic> data = json.decode(response.body);
-
-      if (data['status']) {
-        // Map the booking data to a list of Booking objects
-        List<dynamic> bookingsJson = data['data'];
-        return bookingsJson
-            .map((booking) => Booking.fromJson(booking))
-            .toList();
-      } else {
-        throw Exception('Failed to fetch bookings: ${data['message']}');
-      }
-    } else {
-      throw Exception('Failed to fetch bookings');
+    try {
+      final supabase = Supabase.instance.client;
+      
+      print('Fetching bookings for user: $userId from Supabase');
+      final response = await supabase
+          .from('bookings')
+          .select('*, rooms(*)')  // Include room details in the response
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+          
+      print('Fetched ${response.length} bookings');
+      
+      // Map the booking data to a list of Booking objects
+      return response.map((booking) => Booking.fromJson(booking)).toList();
+    } catch (e) {
+      print('❌ FETCH USER BOOKINGS ERROR: Exception: $e');
+      print('❌ FETCH USER BOOKINGS ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to fetch bookings: $e');
     }
   }
 
   Future<Map<String, dynamic>> checkAvailability(
       String roomId, String checkIn, String checkOut) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/booking.php'),
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {
-        'check_availability': '',
-        'check_in': checkIn,
-        'check_out': checkOut,
-        'room_id': roomId,
-      },
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to check availability');
+    try {
+      final supabase = Supabase.instance.client;
+      
+      print('Checking room availability in Supabase');
+      print('Room ID: $roomId, Check-in: $checkIn, Check-out: $checkOut');
+      
+      // Parse dates for validation (no need to store in variables as we're using the string format)
+      
+      // Check for overlapping bookings
+      final response = await supabase
+          .from('bookings')
+          .select()
+          .eq('room_id', roomId)
+          .or('status.eq.confirmed,status.eq.pending')
+          .not('status', 'eq', 'cancelled')
+          .lte('checkin', checkOut)  // Check-in date is before or on the checkout date
+          .gte('checkout', checkIn); // Check-out date is after or on the check-in date
+      
+      final isAvailable = response.isEmpty;
+      
+      print('Room availability: ${isAvailable ? 'Available' : 'Not Available'}');
+      
+      return {
+        'status': true,
+        'available': isAvailable,
+        'message': isAvailable ? 'Room is available' : 'Room is not available for the selected dates'
+      };
+    } catch (e) {
+      print('❌ CHECK AVAILABILITY ERROR: Exception: $e');
+      print('❌ CHECK AVAILABILITY ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      return {
+        'status': false,
+        'available': false,
+        'message': 'Failed to check availability: $e'
+      };
     }
   }
 
   Future<Map<String, dynamic>> createBooking(Booking booking) async {
-    final response = await http.post(
-      Uri.parse(
-          '$baseUrl/booking.php'), // Make sure this is the correct endpoint
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }, // Form URL-encoded headers
-      body: {
-        'book_room':
-            '', // This should match what the API expects for booking action
+    try {
+      final supabase = Supabase.instance.client;
+      
+      print('Creating booking in Supabase');
+      print('User ID: ${booking.userId}, Room ID: ${booking.hotelId}');
+      
+      // Create booking data
+      final bookingData = {
         'user_id': booking.userId,
-        'room_id': booking
-            .hotelId, // Assuming hotelId is the room_id, adjust if needed
-        'check_in': booking.checkIn.toIso8601String(),
-        'check_out': booking.checkOut.toIso8601String(),
+        'room_id': booking.hotelId,
+        'checkin': booking.checkIn.toIso8601String(),
+        'checkout': booking.checkOut.toIso8601String(),
         'total_amount': booking.totalAmount.toString(),
-      },
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final Map<String, dynamic> result = json.decode(response.body);
-      if (result['status'] == 'success') {
-        return result;
-      } else {
-        throw Exception(result['message'] ?? 'Failed to create booking');
-      }
-    } else {
-      // // print('Response body: ${response.body}');
-      throw Exception('Failed to create booking');
+        'status': 'confirmed',
+        'created_at': DateTime.now().toIso8601String(),
+        // Use default values as these fields are not in the Booking model
+        'name': 'Guest',
+        'phonenum': '',
+        'address': '',
+      };
+      
+      // Insert booking data into bookings table
+      final response = await supabase
+          .from('bookings')
+          .insert(bookingData)
+          .select()
+          .single();
+      
+      print('Booking created with ID: ${response['id']}');
+      
+      return {
+        'status': 'success',
+        'message': 'Booking created successfully',
+        'booking_id': response['id'],
+        'data': response
+      };
+    } catch (e) {
+      print('❌ CREATE BOOKING ERROR: Exception: $e');
+      print('❌ CREATE BOOKING ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to create booking: $e');
     }
   }
 
@@ -193,14 +323,17 @@ class ApiService {
     String userName,
     String phoneNum,
     String address,
-    String roomName, // Add roomName
-    String roomPrice, // Add roomPrice
+    String roomName,
+    String roomPrice,
   ) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/book_room.php'),
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {
-        'book_room': '',
+    try {
+      final supabase = Supabase.instance.client;
+      
+      print('Booking room in Supabase');
+      print('Room ID: $roomId, Check-in: $checkIn, Check-out: $checkOut, User ID: $userId');
+      
+      // Create booking data
+      final bookingData = {
         'room_id': roomId,
         'checkin': checkIn,
         'checkout': checkOut,
@@ -208,15 +341,34 @@ class ApiService {
         'name': userName,
         'phonenum': phoneNum,
         'address': address,
-        'room_name': roomName, // Include room name
-        'room_price': roomPrice, // Include room price
-      },
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to create booking');
+        'room_name': roomName,
+        'room_price': roomPrice,
+        'status': 'confirmed',
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      
+      // Insert booking data into bookings table
+      final response = await supabase
+          .from('bookings')
+          .insert(bookingData)
+          .select()
+          .single();
+      
+      print('Booking created with ID: ${response['id']}');
+      
+      return {
+        'status': true,
+        'message': 'Booking created successfully',
+        'booking_id': response['id'],
+        'data': response
+      };
+    } catch (e) {
+      print('❌ BOOK ROOM ERROR: Exception: $e');
+      print('❌ BOOK ROOM ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      return {
+        'status': false,
+        'message': 'Failed to create booking: $e'
+      };
     }
   }
 
@@ -229,122 +381,294 @@ class ApiService {
     required String dob,
     required String pass,
     required String cpass,
-    required String role, // Add role parameter
+    required String role,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/register_user.php'),
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {
+    try {
+      final supabase = Supabase.instance.client;
+
+      // Sanitize inputs
+      final cleanEmail = email.trim();
+      final cleanPass = pass.trim();
+      final cleanCpass = cpass.trim();
+
+      print('Registering user in Supabase');
+      print('Email: $cleanEmail, Role: $role');
+
+      // Validate email format (better regex)
+      final emailRegex = RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$");
+      if (!emailRegex.hasMatch(cleanEmail)) {
+        throw Exception('Invalid email format: $cleanEmail');
+      }
+
+      // Validate password
+      if (cleanPass.length < 6) {
+        throw Exception('Password must be at least 6 characters');
+      }
+
+      if (cleanPass != cleanCpass) {
+        throw Exception('Passwords do not match');
+      }
+
+      // Register with Supabase Auth
+      final authResponse = await supabase.auth.signUp(
+        email: cleanEmail,
+        password: cleanPass,
+      );
+
+      if (authResponse.user == null) {
+        throw Exception('Failed to create user account: ${authResponse.session?.accessToken ?? 'No access token'}');
+      }
+
+      final userId = authResponse.user!.id;
+      print('✅ User registered with ID: $userId');
+
+      // Prepare user data
+      final userData = {
+        'id': userId,
         'name': name,
-        'email': email,
-        'phonenum': phonenum,
+        'email': cleanEmail,
+        'phone': phonenum,
         'address': address,
         'pincode': pincode,
         'dob': dob,
-        'pass': pass,
-        'cpass': cpass,
-        'role': role, // Pass the selected role
-        'guest_register': '', // Indicate registration type
-      },
-    );
+        'role': role,
+        'created_at': DateTime.now().toIso8601String(),
+      };
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to register user');
-    }
-  }
+      // Insert user profile to Supabase table
+      await supabase.from('user_cred').insert(userData);
 
-  // Dalali API Services
-
-  // Add Property
-  static Future<Map<String, dynamic>> addProperty(
-      Map<String, dynamic> propertyData) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/dalali/add_property.php'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer your_token', // Ensure a valid token is used
-      },
-      body: jsonEncode(
-          propertyData), // jsonEncode can handle both strings and numbers
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to add property');
-    }
-  }
-
-  // Upload Property Media
-  static Future<Map<String, dynamic>> uploadPropertyMedia(
-      String propertyId, String mediaType, String filePath, bool thumb) async {
-    try {
-      var request = http.MultipartRequest(
-          'POST', Uri.parse('$baseUrl/dalali/upload_property_media.php'));
-
-      // Set fields with property_id as String
-      request.fields['property_id'] = propertyId; // Property ID as String
-      request.fields['media_type'] = mediaType; // Media type (image/video)
-      request.fields['thumb'] = thumb ? '1' : '0'; // Thumbnail flag as String
-
-      // Add the media file to the request
-      request.files
-          .add(await http.MultipartFile.fromPath('media_file', filePath));
-
-      // Send the request and get the response
-      final response = await request.send();
-
-      // Check if the response was successful
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // Decode the response body
-        final responseBody = await response.stream.bytesToString();
-        print("Everything is going great $responseBody");
-        return jsonDecode(responseBody);
-      } else {
-        // Handle non-200 responses
-        return {
-          'status': 'error',
-          'message': 'Failed to upload media: ${response.statusCode}'
-        };
-      }
-    } catch (e) {
-      // Catch any errors during the upload process
       return {
-        'status': 'error',
-        'message': 'Error occurred during media upload: $e'
+        'status': true,
+        'message': 'User registered successfully',
+        'user_id': userId
+      };
+    } on AuthException catch (authError) {
+      print('❌ REGISTER USER AUTH ERROR: ${authError.message}');
+      return {
+        'status': false,
+        'message': authError.message
+      };
+    } catch (e) {
+      print('❌ REGISTER USER ERROR: Exception: $e');
+      return {
+        'status': false,
+        'message': 'Failed to register user: $e'
       };
     }
   }
 
+
+  // Dalali API Services
+
+  // Add Property
+Future<Map<String, dynamic>> addProperty(Map<String, dynamic> propertyData) async {
+    print('🏠 ADD PROPERTY: Starting property addition');
+    print('🏠 ADD PROPERTY: Property data = $propertyData');
+    try {
+      final supabase = Supabase.instance.client;
+      if (!propertyData.containsKey('created_at')) {
+        propertyData['created_at'] = DateTime.now().toIso8601String();
+      }
+      propertyData.remove('id');
+      // Insert and fetch the inserted property with its id
+      final response = await supabase.from('properties').insert(propertyData).select().single();
+      print('✅ ADD PROPERTY: Successfully added property with id ${response['id']}');
+      return {
+        'status': 'success',
+        'message': 'Property added successfully',
+        'property_id': response['id'],
+        'property': response,
+      };
+    } catch (e) {
+      print('❌ ADD PROPERTY ERROR: Exception: $e');
+      print('❌ ADD PROPERTY ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Error during property addition: $e');
+    }
+  }
+  
+  Future<Map<String, dynamic>> uploadPropertyMedia(
+      String propertyId, String mediaType, dynamic fileInput, bool thumb) async {
+    try {
+      final supabase = Supabase.instance.client;
+      String bucketName = mediaType == 'video' ? 'properties-videos' : 'properties-images';
+      String contentType = mediaType == 'video' ? 'video/mp4' : 'image/jpeg';
+      String fileExtension = mediaType == 'video' ? '.mp4' : '.jpg';
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final fileName = '${propertyId}_$timestamp$fileExtension';
+  
+      final bytes = await _getFileBytes(fileInput);
+  
+      await supabase.storage
+          .from(bucketName)
+          .uploadBinary(fileName, bytes, fileOptions: FileOptions(contentType: contentType));
+  
+      final fileUrl = supabase.storage.from(bucketName).getPublicUrl(fileName);
+  
+      final mediaData = {
+        'property_id': propertyId,
+        'media_url': fileUrl,
+        'media_type': mediaType,
+        'is_thumbnail': thumb,
+        'created_at': DateTime.now().toIso8601String()
+      };
+  
+      await supabase.from('property_media').insert(mediaData);
+  
+      return {
+        'status': 'success',
+        'message': 'Media uploaded successfully',
+        'file_path': fileUrl,
+        'media_type': mediaType
+      };
+    } catch (e) {
+      print('❌ UPLOAD MEDIA ERROR: $e');
+      return {'status': 'error', 'message': 'Failed to upload media: $e'};
+    }
+  }
+  
+  Future<Map<String, dynamic>> uploadWebVideoDirectly(
+      String propertyId, String blobUrl, bool thumb) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final String bucketName = 'properties-videos';
+      final String contentType = 'video/mp4';
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final fileName = '${propertyId}_$timestamp.mp4';
+  
+      final completer = Completer<Uint8List>();
+      final xhr = html.HttpRequest();
+  
+      xhr.open('GET', blobUrl);
+      xhr.responseType = 'arraybuffer';
+  
+      xhr.onLoad.listen((_) {
+        if (xhr.status == 200) {
+          completer.complete(Uint8List.fromList(xhr.response as List<int>));
+        } else {
+          completer.completeError('Failed with status: ${xhr.status}');
+        }
+      });
+  
+      xhr.onError.listen((event) => completer.completeError('Failed to load blob URL'));
+      xhr.send();
+  
+      final bytes = await completer.future;
+      await supabase.storage
+          .from(bucketName)
+          .uploadBinary(fileName, bytes, fileOptions: FileOptions(contentType: contentType));
+  
+      final fileUrl = supabase.storage.from(bucketName).getPublicUrl(fileName);
+  
+      final mediaData = {
+        'property_id': propertyId,
+        'media_url': fileUrl,
+        'media_type': 'video',
+        'is_thumbnail': thumb,
+        'created_at': DateTime.now().toIso8601String()
+      };
+  
+      await supabase.from('property_media').insert(mediaData);
+  
+      return {
+        'status': 'success',
+        'message': 'Video uploaded successfully',
+        'file_path': fileUrl,
+        'media_type': 'video'
+      };
+    } catch (e) {
+      print('❌ UPLOAD WEB VIDEO ERROR: $e');
+      return {'status': 'error', 'message': 'Failed to upload video: $e'};
+    }
+  }
+
   // Delete Property Media
-  static Future<Map<String, dynamic>> deletePropertyMedia(
+  Future<Map<String, dynamic>> deletePropertyMedia(
       String mediaUrl) async {
     try {
-      // Create the URL for the DELETE request
-      final url = Uri.parse('$baseUrl/dalali/delete_property_media.php');
-
-      // Prepare the request body or parameters
-      final response = await http.post(
-        url,
-        body: {
-          'media_url': mediaUrl, // URL of the media to delete
-        },
-      );
-
-      // Check the response status
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseBody = jsonDecode(response.body);
-        return responseBody;
-      } else {
+      print('🗑️ DELETE MEDIA: Starting media deletion for URL: $mediaUrl');
+      final supabase = Supabase.instance.client;
+      
+      // First, get the media record from database to have property_id and other details
+      final mediaRecords = await supabase
+          .from('property_media')
+          .select()
+          .eq('media_url', mediaUrl);
+      
+      if (mediaRecords.isEmpty) {
+        print('⚠️ DELETE MEDIA: No database record found for media URL');
         return {
           'status': 'error',
-          'message': 'Failed to delete media: ${response.statusCode}'
+          'message': 'Media record not found in database'
         };
       }
+      
+      // Extract file path from URL to get the storage path
+      final mediaRecord = mediaRecords[0];
+      final String fullUrl = mediaRecord['media_url'];
+      
+      // Parse the URL to extract the filename
+      // The URL format should be like: https://supabasehost.com/storage/v1/object/public/bucket_name/filename
+      final Uri uri = Uri.parse(fullUrl);
+      final pathSegments = uri.pathSegments;
+      
+      // The filename should be the last segment in the path
+      if (pathSegments.isEmpty) {
+        print('⚠️ DELETE MEDIA: Could not parse filename from URL: $fullUrl');
+        return {
+          'status': 'error',
+          'message': 'Invalid media URL format'
+        };
+      }
+      
+      // Determine the bucket name based on media type
+      final String mediaType = mediaRecord['media_type'];
+      final String bucketName = mediaType == 'video' ? 'properties-videos' : 'properties-images';
+      final String filename = pathSegments.last;
+      
+      try {
+        // Delete from storage
+        await supabase.storage.from(bucketName).remove([filename]);
+        print('✅ DELETE MEDIA: File deleted from storage: $filename');
+        
+        // Delete from database
+        await supabase
+            .from('property_media')
+            .delete()
+            .eq('media_url', mediaUrl);
+        
+        print('✅ DELETE MEDIA: Record deleted from database');
+        
+        return {
+          'status': 'success',
+          'message': 'Media deleted successfully'
+        };
+      } catch (storageError) {
+        print('⚠️ DELETE MEDIA: Storage deletion error: $storageError');
+        
+        // Try to delete the database record anyway
+        try {
+          await supabase
+              .from('property_media')
+              .delete()
+              .eq('media_url', mediaUrl);
+          
+          print('⚠️ DELETE MEDIA: Record deleted from database, but file deletion failed');
+          
+          return {
+            'status': 'partial_success',
+            'message': 'Database record deleted, but file deletion failed: $storageError'
+          };
+        } catch (dbError) {
+          print('❌ DELETE MEDIA: Database deletion also failed: $dbError');
+          return {
+            'status': 'error',
+            'message': 'Failed to delete media: $storageError. Database error: $dbError'
+          };
+        }
+      }
     } catch (e) {
-      // Handle exceptions
+      print('❌ DELETE MEDIA ERROR: $e');
       return {
         'status': 'error',
         'message': 'Error occurred during media deletion: $e'
@@ -353,370 +677,673 @@ class ApiService {
   }
 
   // Delete Message
-  static Future<void> deleteMessage(int messageId) async {
-    final response = await http.delete(
-      Uri.parse('$baseUrl/delete_message.php?message_id=$messageId'),
-      headers: {"Content-Type": "application/json"},
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final result = jsonDecode(response.body);
-      if (result['success'] == true) {
-        print("Message deleted successfully");
-      } else {
-        throw Exception("Failed to delete message: ${result['error']}");
-      }
-    } else {
-      throw Exception("Failed to delete message (HTTP ${response.statusCode})");
+  Future<void> deleteMessage(int messageId) async {
+    try {
+      print('🗑️ DELETE MESSAGE: Deleting message with ID: $messageId');
+      
+      final supabase = Supabase.instance.client;
+      
+      // Delete the message from the messages table
+      await supabase
+          .from('messages')
+          .delete()
+          .eq('id', messageId);
+      
+      print('✅ DELETE MESSAGE: Message deleted successfully');
+    } catch (e) {
+      print('❌ DELETE MESSAGE ERROR: $e');
+      throw Exception("Failed to delete message: $e");
     }
   }
 
   // Update Property
-  static Future<Map<String, dynamic>> updateProperty(
+  Future<Map<String, dynamic>> updateProperty(
       String propertyId, Map<String, dynamic> updatedData) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl/dalali/update_property.php'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer your_token', // Ensure a valid token
-      },
-      body: jsonEncode({'property_id': propertyId, ...updatedData}),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to update property');
+    try {
+      print('🏠 UPDATE PROPERTY: Starting property update for ID: $propertyId');
+      print('🏠 UPDATE PROPERTY: Updated data = $updatedData');
+      
+      final supabase = Supabase.instance.client;
+      
+      // Add updated timestamp
+      updatedData['updated_at'] = DateTime.now().toIso8601String();
+      
+      // Update the property in the database
+      await supabase
+          .from('properties')
+          .update(updatedData)
+          .eq('id', propertyId);
+          
+      print('✅ UPDATE PROPERTY: Property updated successfully');
+      
+      return {
+        'status': 'success',
+        'message': 'Property updated successfully',
+        'property_id': propertyId
+      };
+    } catch (e) {
+      print('❌ UPDATE PROPERTY ERROR: $e');
+      throw Exception('Failed to update property: $e');
     }
   }
 
   // Delete Property
-  static Future<Map<String, dynamic>> deleteProperty(String propertyId) async {
-    final response = await http.delete(
-      Uri.parse('$baseUrl/dalali/delete_property.php'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer your_token', // Ensure a valid token
-      },
-      body: jsonEncode({'property_id': propertyId}),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to delete property');
+  Future<Map<String, dynamic>> deleteProperty(String propertyId) async {
+    try {
+      print('🗑️ DELETE PROPERTY: Starting property deletion for ID: $propertyId');
+      
+      final supabase = Supabase.instance.client;
+      
+      // First, delete associated media files from storage
+      // This assumes media files are stored in a 'property_media' folder with property ID as subfolder
+      try {
+        final List<FileObject> files = await supabase
+            .storage
+            .from('property_media')
+            .list(path: propertyId);
+            
+        if (files.isNotEmpty) {
+          final List<String> filePaths = files.map((file) => '$propertyId/${file.name}').toList();
+          await supabase.storage.from('property_media').remove(filePaths);
+          print('✅ DELETE PROPERTY: Associated media files deleted');
+        }
+      } catch (e) {
+        // Continue with property deletion even if media deletion fails
+        print('⚠️ DELETE PROPERTY: Could not delete associated media: $e');
+      }
+      
+      // Delete property record
+      await supabase
+          .from('properties')
+          .delete()
+          .eq('id', propertyId);
+          
+      print('✅ DELETE PROPERTY: Property deleted successfully');
+      
+      return {
+        'status': 'success',
+        'message': 'Property deleted successfully'
+      };
+    } catch (e) {
+      print('❌ DELETE PROPERTY ERROR: $e');
+      throw Exception('Failed to delete property: $e');
     }
   }
 
-  static Future<List<Property>> fetchProperties(String userId) async {
-    final response = await http
-        .get(Uri.parse('$baseUrl/dalali/fetch_properties.php?user_id=$userId'));
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      List<dynamic> data = json.decode(response.body);
-      return data.map((item) => Property.fromJson(item)).toList();
-    } else {
+  Future<List<Property>> fetchProperties(String userId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('properties')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+      
+      return response.map<Property>((property) => Property.fromJson(property)).toList();
+    } catch (e) {
+      print('Error fetching properties: $e');
       throw Exception('Failed to load properties');
     }
   }
 
   // Method to fetch properties overview for a specific user
-  static Future<Map<String, int>> fetchPropertiesOverview(int userId) async {
+  Future<Map<String, int>> fetchPropertiesOverview(String userId) async {
     try {
-      final url = Uri.parse(
-          '$baseUrl/dalali/get_dalali_properties.php?user_id=$userId');
-
-      final response = await http.get(url);
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = json.decode(response.body);
-        return {
-          'for_sale': int.tryParse(data['for_sale']?.toString() ?? '0') ?? 0,
-          'for_rent': int.tryParse(data['for_rent']?.toString() ?? '0') ?? 0,
-        };
-      } else {
-        throw Exception(
-            'Failed to load properties overview: Server responded with status ${response.statusCode}');
-      }
+      final supabase = Supabase.instance.client;
+      
+      // Get properties for sale
+      final forSaleResponse = await supabase
+          .from('properties')
+          .select()
+          .eq('user_id', userId.toString())
+          .eq('listing_type', 'for_sale');
+      
+      // Get properties for rent
+      final forRentResponse = await supabase
+          .from('properties')
+          .select()
+          .eq('user_id', userId.toString())
+          .eq('listing_type', 'for_rent');
+      
+      // Count the results
+      final forSaleCount = forSaleResponse.length;
+      final forRentCount = forRentResponse.length;
+      
+      print('Properties Overview: For Sale: $forSaleCount, For Rent: $forRentCount');
+      
+      return {
+        'for_sale': forSaleCount,
+        'for_rent': forRentCount,
+      };
     } catch (e) {
+      print('Error fetching properties overview: $e');
       throw Exception(
-          'An error occurred while loading properties overview. Please check your network connection or try again later.');
+          'An error occurred while loading properties overview. Please check your connection or try again later.');
     }
   }
 
   // Fetch unreplied enquiries for the dashboard
-  static Future<List<dynamic>> fetchUnrepliedEnquiries(int userId) async {
-    final response = await http.get(Uri.parse(
-        '$baseUrl/dalali/get_unreplied_enquiries.php?user_id=$userId'));
-    print(response.body);
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to load unreplied enquiries');
+  Future<List<dynamic>> fetchUnrepliedEnquiries(String userId) async {
+    try {
+      print('📬 FETCH UNREPLIED ENQUIRIES: Fetching for user ID: $userId');
+      final supabase = Supabase.instance.client;
+      
+      // Get enquiries/messages that haven't been replied to
+      // This assumes you have a 'replied' field in your messages table
+      final response = await supabase
+          .from('enquiries')
+          .select('*, properties(*)')
+          .eq('receiver_id', userId.toString())
+          .eq('replied', false)
+          .order('created_at', ascending: false);
+      
+      print('✅ FETCH UNREPLIED ENQUIRIES: Found ${response.length} unreplied enquiries');
+      return response;
+    } catch (e) {
+      print('❌ FETCH UNREPLIED ENQUIRIES ERROR: $e');
+      throw Exception('Failed to load unreplied enquiries: $e');
     }
   }
 
   // Fetch all enquiries for the detailed enquiries page
-  static Future<List<dynamic>> fetchAllEnquiriesDalali(int dalaliId) async {
-    final response = await http.get(
-        Uri.parse('$baseUrl/dalali/get_all_enquiries.php?dalali_id=$dalaliId'));
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to load all enquiries');
+  Future<List<dynamic>> fetchAllEnquiriesDalali(int dalaliId) async {
+    try {
+      print('📬 FETCH ALL ENQUIRIES: Fetching for dalali ID: $dalaliId');
+      final supabase = Supabase.instance.client;
+      
+      // Get all enquiries/messages for this dalali
+      final response = await supabase
+          .from('enquiries')
+          .select('*, properties(*), sender:sender_id(*)')
+          .eq('receiver_id', dalaliId.toString())
+          .order('created_at', ascending: false);
+      
+      print('✅ FETCH ALL ENQUIRIES: Found ${response.length} enquiries');
+      return response;
+    } catch (e) {
+      print('❌ FETCH ALL ENQUIRIES ERROR: $e');
+      throw Exception('Failed to load all enquiries: $e');
     }
   }
 
   // Fetch All Enquiries
-  static Future<List<dynamic>> fetchAllEnquiriesUser(int userId) async {
-    final response = await http
-        .get(Uri.parse('$baseUrl/user/get_all_enquiries.php?user_id=$userId'));
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      // ✅ Decode response body properly using UTF-8
-      final String decodedBody = utf8.decode(response.bodyBytes);
-      final jsonData = jsonDecode(decodedBody);
-
-      if (jsonData is List) {
-        return jsonData; // ✅ Return list if correct format
-      } else if (jsonData is Map<String, dynamic>) {
-        throw Exception("API Error: ${jsonData['error'] ?? 'Unknown error'}");
-      } else {
-        throw Exception("Unexpected API response format");
-      }
-    } else {
-      throw Exception(
-          'Failed to load all enquiries (HTTP ${response.statusCode})');
+  Future<List<dynamic>> fetchAllEnquiriesUser(String userId) async {
+    try {
+      print('📬 FETCH USER ENQUIRIES: Fetching for user ID: $userId');
+      final supabase = Supabase.instance.client;
+      
+      // Get all enquiries/messages where this user is the sender
+      final response = await supabase
+          .from('enquiries')
+          .select('*, properties(*), receiver:receiver_id(*)')
+          .eq('sender_id', userId.toString())
+          .order('created_at', ascending: false);
+      
+      print('✅ FETCH USER ENQUIRIES: Found ${response.length} enquiries');
+      return response;
+    } catch (e) {
+      print('❌ FETCH USER ENQUIRIES ERROR: $e');
+      throw Exception('Failed to load user enquiries: $e');
     }
   }
 
   Future<List<UserProperty>> fetchPropertiesForUser({String? userId}) async {
-    final url = userId != null
-        ? '$baseUrl/properties.php?user_id=$userId'
-        : '$baseUrl/properties.php';
-
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final decodedResponse = json.decode(response.body);
-
-      // Ensure we extract the list correctly
-      List<dynamic> data;
-      if (decodedResponse is List) {
-        data = decodedResponse;
-      } else if (decodedResponse is Map<String, dynamic> &&
-          decodedResponse.containsKey('properties')) {
-        data = decodedResponse['properties'];
+    try {
+      print('🔍 FETCH PROPERTIES: Starting request for user $userId');
+      final supabase = Supabase.instance.client;
+      
+      // Query properties with optional user filter
+      List<dynamic> propertiesData;
+      if (userId != null) {
+        // Get properties for a specific user
+        propertiesData = await supabase
+            .from('properties')
+            .select('*, property_media(*)')
+            .eq('user_id', userId)
+            .order('created_at', ascending: false);
+        print('🔍 FETCH PROPERTIES: Found ${propertiesData.length} properties for user $userId');
       } else {
-        throw Exception('Unexpected response format');
+        // Get all properties
+        propertiesData = await supabase
+            .from('properties')
+            .select('*, property_media(*)')
+            .order('created_at', ascending: false);
+        print('🔍 FETCH PROPERTIES: Found ${propertiesData.length} properties total');
       }
-
-      return data.map((property) => UserProperty.fromJson(property)).toList();
-    } else {
-      throw Exception('Failed to load properties');
+      
+      // Convert to UserProperty objects
+      final properties = <UserProperty>[];
+      
+      for (var i = 0; i < propertiesData.length; i++) {
+        try {
+          final propertyData = propertiesData[i];
+          
+          // Check if we have media items for this property
+          String mediaType = 'image'; // Default
+          String propertyImageUrl = '';
+          
+          if (propertyData['property_media'] != null && 
+              propertyData['property_media'] is List && 
+              propertyData['property_media'].isNotEmpty) {
+              
+            // Find the thumbnail image or the first media item
+            final mediaItems = propertyData['property_media'] as List;
+            var thumbnailMedia = mediaItems.firstWhere(
+              (media) => media['is_thumbnail'] == true,
+              orElse: () => mediaItems.first
+            );
+            
+            propertyImageUrl = thumbnailMedia['media_url'] ?? '';
+            mediaType = thumbnailMedia['media_type'] ?? 'image';
+          }
+          
+          // Add the property image URL to the property data if needed
+          if (!propertyData.containsKey('property_image') || propertyData['property_image'] == null) {
+            propertyData['property_image'] = propertyImageUrl;
+          }
+          
+          // Add media type to the property data
+          propertyData['media_type'] = mediaType;
+          
+          // Create UserProperty object
+          final property = UserProperty.fromJson(propertyData);
+          properties.add(property);
+          print('✅ FETCH PROPERTIES: Successfully parsed property ${i+1}/${propertiesData.length} - ID: ${property.propertyId}, MediaType: ${property.mediaType}');
+        } catch (e) {
+          print('❌ FETCH PROPERTIES ERROR: Failed to parse property ${i+1}: $e');
+          print('❌ FETCH PROPERTIES ERROR: Property data: ${propertiesData[i]}');
+          // Continue parsing other properties even if one fails
+        }
+      }
+      
+      print('✅ FETCH PROPERTIES: Returning ${properties.length} parsed properties');
+      return properties;
+    } catch (e) {
+      print('❌ FETCH PROPERTIES ERROR: Exception: $e');
+      print('❌ FETCH PROPERTIES ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to fetch properties: $e');
     }
   }
 
-  static Future<Map<String, dynamic>> fetchPropertyDetailForUser(
-      int propertyId) async {
-    final response = await http
-        .get(Uri.parse('$apiUrl/property_detail.php?property_id=$propertyId'));
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to load property details');
+  Future<Map<String, dynamic>> fetchPropertyDetailForUser(
+      String propertyId) async {
+    try {
+      print('🔍 FETCH PROPERTY DETAIL: Requesting details for property $propertyId');
+      final supabase = Supabase.instance.client;
+      
+      // Get property data with its media items
+      final List<dynamic> result = await supabase
+          .from('properties')
+          .select('*, property_media(*), user:user_id(*)')
+          .eq('id', propertyId)
+          .limit(1);
+      
+      if (result.isEmpty) {
+        throw Exception('Property not found');
+      }
+      
+      final decodedData = result[0];
+      print('✅ FETCH PROPERTY DETAIL: Successfully retrieved property data');
+      
+      // Process media items to ensure they have media_type field
+      if (decodedData.containsKey('property_media') && decodedData['property_media'] != null) {
+        final media = decodedData['property_media'];
+        print('✅ FETCH PROPERTY DETAIL: Media data type: ${media.runtimeType}');
+        
+        if (media is List) {
+          print('✅ FETCH PROPERTY DETAIL: Media count: ${media.length}');
+          
+          // Ensure each media item has a media_type field
+          for (var i = 0; i < media.length; i++) {
+            if (media[i] is Map<String, dynamic> && !media[i].containsKey('media_type')) {
+              // If media_type is missing, add it based on file extension
+              String url = media[i]['media_url'] ?? '';
+              String lowerUrl = url.toLowerCase();
+              
+              if (lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.mov') || 
+                  lowerUrl.endsWith('.avi') || lowerUrl.endsWith('.wmv')) {
+                media[i]['media_type'] = 'video';
+              } else {
+                media[i]['media_type'] = 'image';
+              }
+              
+              print('✅ FETCH PROPERTY DETAIL: Added missing media_type (${media[i]['media_type']}) to item $i');
+            }
+            
+            if (i < 5) {
+              print('✅ FETCH PROPERTY DETAIL: Media item $i: ${media[i]}');
+            }
+          }
+          
+          if (media.length > 5) {
+            print('✅ FETCH PROPERTY DETAIL: (${media.length - 5} more media items...)');
+          }
+        }
+      } else {
+        print('⚠️ FETCH PROPERTY DETAIL WARNING: No property_media items found');
+        
+        // Create empty property_media array if missing
+        decodedData['property_media'] = [];
+      }
+      
+      // Add property_image field if needed for backward compatibility
+      if (!decodedData.containsKey('property_image') || decodedData['property_image'] == null) {
+        // Try to find a thumbnail image from media
+        if (decodedData['property_media'] is List && decodedData['property_media'].isNotEmpty) {
+          final mediaList = decodedData['property_media'] as List;
+          
+          // Look for a thumbnail first
+          var thumbnailMedia = mediaList.firstWhere(
+            (media) => media['is_thumbnail'] == true,
+            orElse: () => mediaList.first
+          );
+          
+          decodedData['property_image'] = thumbnailMedia['media_url'] ?? '';
+        } else {
+          // Set a default image
+          decodedData['property_image'] = '';
+        }
+      }
+      
+      print('✅ FETCH PROPERTY DETAIL: Successfully processed property data');
+      return decodedData;
+    } catch (e) {
+      print('❌ FETCH PROPERTY DETAIL ERROR: Exception: $e');
+      print('❌ FETCH PROPERTY DETAIL ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Error fetching property details: $e');
     }
   }
 
   // Fetch messages
-  static Future<List<Map<String, dynamic>>> fetchMessages(
-      int propertyId, int senderId, int receiverId) async {
-    final response = await http.get(
-      Uri.parse(
-          '$apiUrl/get_messages.php?property_id=$propertyId&sender_id=$senderId&receiver_id=$receiverId'),
-    );
-
-    // // print(response.body);
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    } else {
-      throw Exception('Failed to load messages');
+  Future<List<Map<String, dynamic>>> fetchMessages(
+      String propertyId, String senderId, String receiverId) async {
+    try {
+      print('🔍 FETCH MESSAGES: Requesting messages for property $propertyId between users $senderId and $receiverId');
+      final supabase = Supabase.instance.client;
+      
+      // Get all messages for the given property between the two users
+      final List<dynamic> messages = await supabase
+          .from('messages')
+          .select('*')
+          .eq('property_id', propertyId)
+          .or('sender_id.eq.$senderId,receiver_id.eq.$senderId')
+          .or('sender_id.eq.$receiverId,receiver_id.eq.$receiverId')
+          .order('created_at', ascending: true);
+      
+      print('✅ FETCH MESSAGES: Retrieved ${messages.length} messages');
+      
+      // Convert to List<Map<String, dynamic>>
+      return List<Map<String, dynamic>>.from(messages);
+    } catch (e) {
+      print('❌ FETCH MESSAGES ERROR: Exception: $e');
+      print('❌ FETCH MESSAGES ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to load messages: $e');
     }
   }
 
   // Send a message
-  static Future<void> sendMessageForUser({
-    required int senderId,
-    required int receiverId,
-    required int propertyId,
+  Future<void> sendMessageForUser({
+    required String senderId,
+    required String receiverId,
+    required String propertyId,
     required String message,
     String messageType = 'text', // Default message type is 'text'
     String? attachmentUrl, // Optional attachment URL for other media types
   }) async {
-    final response = await http.post(
-      Uri.parse('$apiUrl/send_message.php'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, dynamic>{
+    try {
+      print('🔍 SEND MESSAGE: Creating message from user $senderId to user $receiverId for property $propertyId');
+      final supabase = Supabase.instance.client;
+      
+      // Create a new message record
+      await supabase.from('messages').insert({
         'sender_id': senderId,
         'receiver_id': receiverId,
         'property_id': propertyId,
-        'message': message,
+        'message_content': message,
         'message_type': messageType,
         'attachment_url': attachmentUrl,
-      }),
-    );
-
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Failed to send message');
+        'read_status': false,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      
+      print('✅ SEND MESSAGE: Successfully sent message');
+    } catch (e) {
+      print('❌ SEND MESSAGE ERROR: Exception: $e');
+      print('❌ SEND MESSAGE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to send message: $e');
     }
   }
 
-  static Future<void> replyToUserMessage({
-    required int dalaliId,
-    required int userId, // Added userId
-    required int propertyId, // Added propertyId
+  Future<void> replyToUserMessage({
+    required String dalaliId,
+    required String userId, // Added userId
+    required String propertyId, // Added propertyId
     required String message,
     String messageType = 'text', // Default to 'text' if not provided
     String? attachmentUrl, // Optional attachment URL
   }) async {
-    final response = await http.post(
-      Uri.parse('$apiUrl/dalali/reply_to_message.php'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, dynamic>{
+    try {
+      print('🔍 REPLY TO MESSAGE: Creating reply from dalali $dalaliId to user $userId for property $propertyId');
+      final supabase = Supabase.instance.client;
+      
+      // Create a new message record
+      await supabase.from('messages').insert({
         'sender_id': dalaliId,
-        'receiver_id': userId, // Include receiver_id
-        'property_id': propertyId, // Include property_id
-        'message': message,
-        'message_type': messageType, // Add message type
-        'attachment_url': attachmentUrl, // Add attachment URL if provided
-      }),
-    );
-
-    // Log the response body for debugging
-    // // print('Response status: ${response.statusCode}');
-    // // print('Response body: ${response.body}');
-
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Failed to send message');
+        'receiver_id': userId,
+        'property_id': propertyId,
+        'message_content': message,
+        'message_type': messageType,
+        'attachment_url': attachmentUrl,
+        'read_status': false,
+        'created_at': DateTime.now().toIso8601String(),
+        'is_reply': true, // Mark this as a reply message
+      });
+      
+      print('✅ REPLY TO MESSAGE: Successfully sent reply');
+    } catch (e) {
+      print('❌ REPLY TO MESSAGE ERROR: Exception: $e');
+      print('❌ REPLY TO MESSAGE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to send reply message: $e');
     }
   }
 
   // Get unreplied messages count
-  static Future<int> fetchUnrepliedMessageCount(int userId) async {
-    final response = await http.get(Uri.parse(
-        '$apiUrl/dalali/get_unreplied_count.php?userId=$userId'));
-
-    print(response.statusCode);
-    print(response.body);
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final data = json.decode(response.body);
-      if (data['success']) {
-        return data['unreplied_count'] ?? 0;
-      }
-    }
-    return 0;
-  }
-
-  static Future<void> reactToMessage(int messageId, String reaction) async {
-    final response = await http.post(
-      Uri.parse('$apiUrl/dalali/react_to_message.php'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, dynamic>{
-        'message_id': messageId,
-        'reaction': reaction,
-      }),
-    );
-
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      // // print(response.body);
-      throw Exception('Failed to send reaction');
+  Future<int> fetchUnrepliedMessageCount(String userId) async {
+    try {
+      print('🔍 FETCH UNREPLIED COUNT: Checking unreplied messages for user $userId');
+      final supabase = Supabase.instance.client;
+      
+      // Get all unreplied messages where the user is the receiver and count them
+      final List<dynamic> messages = await supabase
+          .from('messages')
+          .select()
+          .eq('receiver_id', userId.toString())
+          .eq('read_status', false)
+          .eq('is_reply', false);
+      
+      final count = messages.length;
+      print('✅ FETCH UNREPLIED COUNT: Found $count unreplied messages');
+      return count;
+    } catch (e) {
+      print('❌ FETCH UNREPLIED COUNT ERROR: Exception: $e');
+      print('❌ FETCH UNREPLIED COUNT ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      // Return 0 instead of throwing an exception to prevent disrupting the UI
+      return 0;
     }
   }
 
-  static Future<List<Map<String, dynamic>>> fetchMessagesById(
-      int messageId, int propertyId) async {
-    final response = await http.get(
-      Uri.parse(
-          '$apiUrl/dalali/fetch_messages_by_id.php?message_id=$messageId&property_id=$propertyId'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-    );
+  Future<void> reactToMessage(int messageId, String reaction) async {
+    try {
+      print('🔍 REACT TO MESSAGE: Adding reaction $reaction to message $messageId');
+      final supabase = Supabase.instance.client;
+      
+      // Update the message with the reaction
+      await supabase
+          .from('messages')
+          .update({ 'reaction': reaction, 'updated_at': DateTime.now().toIso8601String() })
+          .eq('id', messageId.toString());
+      
+      print('✅ REACT TO MESSAGE: Successfully added reaction');
+    } catch (e) {
+      print('❌ REACT TO MESSAGE ERROR: Exception: $e');
+      print('❌ REACT TO MESSAGE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to send reaction: $e');
+    }
+  }
 
-    // // print(response.body);
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      // Parse the JSON response
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    } else {
-      throw Exception('Failed to load messages');
+  Future<List<Map<String, dynamic>>> fetchMessagesById(
+      int messageId, String propertyId) async {
+    try {
+      print('🔍 FETCH MESSAGES BY ID: Requesting message $messageId for property $propertyId');
+      final supabase = Supabase.instance.client;
+      
+      // Get the specific message and related messages for the property
+      final List<dynamic> messages = await supabase
+          .from('messages')
+          .select('*')
+          .or('id.eq.$messageId,property_id.eq.$propertyId')
+          .order('created_at', ascending: true);
+      
+      print('✅ FETCH MESSAGES BY ID: Retrieved ${messages.length} messages');
+      
+      // Convert to List<Map<String, dynamic>>
+      return List<Map<String, dynamic>>.from(messages);
+    } catch (e) {
+      print('❌ FETCH MESSAGES BY ID ERROR: Exception: $e');
+      print('❌ FETCH MESSAGES BY ID ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to load messages: $e');
     }
   }
 
   // Fetch user details by userId
-  static Future<Map<String, dynamic>> fetchUserDetails(int userId) async {
+  Future<Map<String, dynamic>> fetchUserDetails(int userId) async {
     try {
-      final response = await http.get(Uri.parse(
-          '$apiUrl/dalali/enquiries/fetch_user_details.php?user_id=$userId'));
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // Decode the JSON response
-        final data = json.decode(response.body);
-        return data;
-      } else {
-        // Handle the case where the server returns an error
-        // print('Failed to load user details: ${response.statusCode}');
-        throw Exception('Failed to load user details');
+      print('🔍 FETCH USER DETAILS: Requesting details for user $userId');
+      final supabase = Supabase.instance.client;
+      
+      // Get user profile data
+      final List<dynamic> result = await supabase
+          .from('user_cred')
+          .select('*, users:id(*)')
+          .eq('id', userId.toString())
+          .limit(1);
+      
+      if (result.isEmpty) {
+        throw Exception('User not found');
       }
+      
+      final userData = result[0];
+      print('✅ FETCH USER DETAILS: Successfully retrieved user data');
+      
+      return userData;
     } catch (e) {
-      // Handle network errors or other exceptions
-      // // print('Error fetching user details: $e');
-      throw Exception('Error fetching user details');
+      print('❌ FETCH USER DETAILS ERROR: Exception: $e');
+      print('❌ FETCH USER DETAILS ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Error fetching user details: $e');
     }
   }
 
-  static Future<void> removeReactionFromMessage(int messageId) async {
-    final response = await http.post(
-      Uri.parse('$apiUrl/remove_reaction.php'),
-      body: {'message_id': messageId.toString()},
-    );
-
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Failed to remove reaction');
+  Future<void> removeReactionFromMessage(int messageId) async {
+    try {
+      print('🔍 REMOVE REACTION: Removing reaction from message $messageId');
+      final supabase = Supabase.instance.client;
+      
+      // Update the message to remove the reaction (set to null)
+      await supabase
+          .from('messages')
+          .update({ 'reaction': null, 'updated_at': DateTime.now().toIso8601String() })
+          .eq('id', messageId.toString());
+      
+      print('✅ REMOVE REACTION: Successfully removed reaction');
+    } catch (e) {
+      print('❌ REMOVE REACTION ERROR: Exception: $e');
+      print('❌ REMOVE REACTION ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to remove reaction: $e');
     }
   }
 
   Future<Map<String, dynamic>> loginWithGoogle(
       String email, String googleId, String name, String profilePic) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/loginWithGoogle.php'),
-        body: {
-          'email': email,
-          'google_id': googleId,
-          'name': name,
-          'profile_pic': profilePic,
-        },
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
+      print('🔍 LOGIN WITH GOOGLE: Attempting to authenticate user with email: $email');
+      final supabase = Supabase.instance.client;
+      
+      // First check if the user exists with this email
+      final List<dynamic> existingUsers = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', email)
+          .limit(1);
+      
+      if (existingUsers.isNotEmpty) {
+        // User exists, sign in with email and Google ID as password
+        final response = await supabase.auth.signInWithPassword(
+          email: email,
+          password: googleId, // Use googleId as password
+        );
+        
+        if (response.session != null) {
+          final user = response.user;
+          print('✅ LOGIN WITH GOOGLE: Successfully authenticated existing user: ${user?.email}');
+          return {
+            'success': true,
+            'message': 'Login successful',
+            'user_id': user?.id,
+            'email': user?.email,
+            'name': name,
+            'profile_pic': profilePic,
+          };
+        } else {
+          print('❌ LOGIN WITH GOOGLE ERROR: Failed to authenticate user - No session');
+          return {
+            'success': false,
+            'message': 'Authentication failed',
+          };
+        }
       } else {
-        return {
-          'success': false,
-          'message': 'Failed to connect to the server',
-        };
+        // User doesn't exist, sign up
+        final response = await supabase.auth.signUp(
+          email: email,
+          password: googleId, // Use googleId as password
+          data: {
+            'name': name,
+            'profile_pic': profilePic,
+            'google_id': googleId,
+          },
+        );
+        
+        if (response.user != null) {
+          final user = response.user!;
+          print('✅ LOGIN WITH GOOGLE: Successfully created new user: ${user.email}');
+          
+          // Create user profile
+          await supabase.from('user_cred').insert({
+            'id': user.id,
+            'name': name,
+            'email': email,
+            'profile_pic': profilePic,
+            'created_at': DateTime.now().toIso8601String(),
+          });
+          
+          return {
+            'success': true,
+            'message': 'Registration successful',
+            'user_id': user.id,
+            'email': user.email,
+            'name': name,
+            'profile_pic': profilePic,
+          };
+        } else {
+          print('❌ LOGIN WITH GOOGLE ERROR: Failed to create user');
+          return {
+            'success': false,
+            'message': 'Registration failed',
+          };
+        }
       }
     } catch (e) {
+      print('❌ LOGIN WITH GOOGLE ERROR: Exception: $e');
+      print('❌ LOGIN WITH GOOGLE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
       return {
         'success': false,
         'message': 'An error occurred: $e',
@@ -725,178 +1352,187 @@ class ApiService {
   }
 
   // Create Notification
-  static Future<Map<String, dynamic>> createNotification(
-      int userId, int targetUserId, int propertyId) async {
-    final url = Uri.parse('$baseUrl/create_notification.php');
+  Future<Map<String, dynamic>> createNotification(
+      String userId, String targetUserId, String propertyId) async {
     try {
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "user_id": userId,
-          "target_user_id": targetUserId,
-          "property_id": propertyId,
-          "message": "Property Requested!"
-        }),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return jsonDecode(response.body); // Assuming JSON response
-      } else {
-        return {"status": "error", "message": "Failed to create notification"};
-      }
+      print('🔍 CREATE NOTIFICATION: Creating notification from user $userId to user $targetUserId for property $propertyId');
+      final supabase = Supabase.instance.client;
+      
+      // Create a new notification record
+      await supabase.from('notifications').insert({
+        'user_id': userId,
+        'target_user_id': targetUserId,
+        'property_id': propertyId,
+        'message': 'Property Requested!',
+        'read_status': false,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      
+      print('✅ CREATE NOTIFICATION: Successfully created notification');
+      return {"status": "success", "message": "Notification created successfully"};
     } catch (e) {
+      print('❌ CREATE NOTIFICATION ERROR: Exception: $e');
+      print('❌ CREATE NOTIFICATION ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
       return {"status": "error", "message": e.toString()};
     }
   }
 
-  static Future<List<Map<String, dynamic>>> fetchNotifications(
-      int targetUserId) async {
-    final url = Uri.parse(
-        '$baseUrl/dalali/fetch_unread_notifications.php?target_user_id=$targetUserId');
-
+  Future<List<Map<String, dynamic>>> fetchNotifications(
+      String targetUserId) async {
     try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        if (data['status'] == 'success') {
-          return List<Map<String, dynamic>>.from(data['notifications']);
-        } else {
-          return [];
-        }
-      } else {
-        print(response.body);
-        return [];
-      }
+      print('🔍 FETCH NOTIFICATIONS: Requesting notifications for user $targetUserId');
+      final supabase = Supabase.instance.client;
+      
+      // Get unread notifications for the target user
+      final List<dynamic> notifications = await supabase
+          .from('notifications')
+          .select('*, user:user_id(*), property:property_id(*)')
+          .eq('target_user_id', targetUserId.toString())
+          .eq('read_status', false)
+          .order('created_at', ascending: false);
+      
+      print('✅ FETCH NOTIFICATIONS: Retrieved ${notifications.length} notifications');
+      
+      // Convert to List<Map<String, dynamic>>
+      return List<Map<String, dynamic>>.from(notifications);
     } catch (e) {
-      print(e.toString());
+      print('❌ FETCH NOTIFICATIONS ERROR: Exception: $e');
+      print('❌ FETCH NOTIFICATIONS ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      // Return empty list instead of throwing an exception to prevent disrupting the UI
       return [];
     }
   }
 
   /// Marks a notification as read
-  static Future<void> markNotificationAsRead(int notificationId) async {
-    // Update the endpoint to match the PHP script
-    final url =
-        '$baseUrl/dalali/mark_notification_read.php?notificationId=$notificationId';
-
+  Future<void> markNotificationAsRead(String notificationId) async {
     try {
-      final response = await http.get(
-        Uri.parse(url), // Using GET because the PHP script expects it
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseBody = jsonDecode(response.body);
-        if (responseBody['success'] == true) {
-          print('Notification marked as read.');
-        } else {
-          throw Exception(responseBody['message'] ??
-              'Failed to update notification status.');
-        }
-      } else {
-        throw Exception(
-            'Failed to update notification status: ${response.reasonPhrase}');
-      }
+      print('🔍 MARK NOTIFICATION READ: Updating notification $notificationId');
+      final supabase = Supabase.instance.client;
+      
+      // Update the notification to mark it as read
+      await supabase
+          .from('notifications')
+          .update({
+            'read_status': true,
+            'updated_at': DateTime.now().toIso8601String()
+          })
+          .eq('id', notificationId.toString());
+      
+      print('✅ MARK NOTIFICATION READ: Successfully marked notification as read');
     } catch (e) {
-      print('Error marking notification as read: $e');
+      print('❌ MARK NOTIFICATION READ ERROR: Exception: $e');
+      print('❌ MARK NOTIFICATION READ ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to update notification status: $e');
     }
   }
 
   /// Fetches sender details based on the user ID
-  static Future<Map<String, dynamic>> fetchSenderDetails(int userId) async {
-    // Update the endpoint to match the PHP script
-    final url = '$baseUrl/dalali/get_user_details.php?userId=$userId';
-
+  Future<Map<String, dynamic>> fetchSenderDetails(String userId) async {
     try {
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseBody = jsonDecode(response.body);
-        if (responseBody['success'] == true) {
-          return responseBody['data'] as Map<String, dynamic>;
-        } else {
-          throw Exception(
-              responseBody['message'] ?? 'Failed to fetch sender details.');
-        }
-      } else {
-        throw Exception(
-            'Failed to fetch sender details: ${response.reasonPhrase}');
+      print('🔍 FETCH SENDER DETAILS: Requesting details for user $userId');
+      final supabase = Supabase.instance.client;
+      
+      // Get user profile data
+      final List<dynamic> result = await supabase
+          .from('user_cred')
+          .select('*, users:id(*)')
+          .eq('id', userId)
+          .limit(1);
+      
+      if (result.isEmpty) {
+        print('❌ FETCH SENDER DETAILS ERROR: User not found');
+        return {};
       }
+      
+      final userData = result[0];
+      print('✅ FETCH SENDER DETAILS: Successfully retrieved user data');
+      
+      return userData;
     } catch (e) {
-      print('Error fetching sender details: $e');
+      print('❌ FETCH SENDER DETAILS ERROR: Exception: $e');
+      print('❌ FETCH SENDER DETAILS ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
       return {};
     }
   }
 
-  static Future<List<NotificationModel>> fetchNotificationsAll(
-      int targetUserId) async {
-    final url =
-        '$baseUrl/dalali/fetch_notifications.php?target_user_id=$targetUserId';
-
+  Future<List<NotificationModel>> fetchNotificationsAll(
+      String targetUserId) async {
     try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        final notifications = (data['notifications'] as List)
-            .map((notification) => NotificationModel.fromJson(notification))
-            .toList();
-        return notifications;
-      } else {
-        throw Exception('Failed to fetch notifications');
-      }
+      print('🔍 FETCH ALL NOTIFICATIONS: Requesting all notifications for user $targetUserId');
+      final supabase = Supabase.instance.client;
+      
+      // Get all notifications for the target user (both read and unread)
+      final List<dynamic> results = await supabase
+          .from('notifications')
+          .select('*, user:user_id(*), property:property_id(*)')
+          .eq('target_user_id', targetUserId.toString())
+          .order('created_at', ascending: false);
+      
+      print('✅ FETCH ALL NOTIFICATIONS: Retrieved ${results.length} notifications');
+      
+      // Convert to NotificationModel objects
+      final notifications = results
+          .map((notification) => NotificationModel.fromJson(notification))
+          .toList();
+      
+      return notifications;
     } catch (e) {
-      print('Error fetching notifications: $e');
+      print('❌ FETCH ALL NOTIFICATIONS ERROR: Exception: $e');
+      print('❌ FETCH ALL NOTIFICATIONS ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
       return [];
     }
   }
 
-  static Future<bool> updateBrokerDetails(
+  Future<bool> updateBrokerDetails(
       int userId, Map<String, dynamic> data) async {
-    final response = await http.put(
-      Uri.parse('https://your-api-url.com/brokers/$userId'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(data),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
+    try {
+      print('🔍 UPDATE BROKER DETAILS: Updating details for broker $userId');
+      final supabase = Supabase.instance.client;
+      
+      // Add updated_at timestamp to the data
+      data['updated_at'] = DateTime.now().toIso8601String();
+      
+      // Update the broker profile in user_cred
+      await supabase
+          .from('user_cred')
+          .update(data)
+          .eq('id', userId.toString())
+          .eq('user_type', 'broker');
+      
+      print('✅ UPDATE BROKER DETAILS: Successfully updated broker details');
       return true;
-    } else {
-      throw Exception('Failed to update broker details');
+    } catch (e) {
+      print('❌ UPDATE BROKER DETAILS ERROR: Exception: $e');
+      print('❌ UPDATE BROKER DETAILS ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to update broker details: $e');
     }
   }
 
   /// Fetch user details from the API
   Future<Map<String, dynamic>> getUserDetails(int userId) async {
-    final String url = '$baseUrl/get_user_details.php?userId=$userId';
-
     try {
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-
-        if (responseData['success'] == true) {
-          // If the user data is successfully retrieved
-          return responseData['data'];
-        } else {
-          // If the API returns a failure response
-          throw Exception(
-              responseData['message'] ?? 'Failed to fetch user details');
-        }
-      } else {
-        throw Exception(
-            'Failed to load user details. HTTP Status: ${response.statusCode}');
+      print('🔍 GET USER DETAILS: Requesting details for user $userId');
+      final supabase = Supabase.instance.client;
+      
+      // Get user profile data with related auth user data
+      final List<dynamic> result = await supabase
+          .from('user_cred')
+          .select('*, users:id(*)')
+          .eq('id', userId.toString())
+          .limit(1);
+      
+      if (result.isEmpty) {
+        print('❌ GET USER DETAILS ERROR: User not found');
+        throw Exception('User not found');
       }
+      
+      final userData = result[0];
+      print('✅ GET USER DETAILS: Successfully retrieved user data');
+      
+      return userData;
     } catch (error) {
+      print('❌ GET USER DETAILS ERROR: Exception: $error');
+      print('❌ GET USER DETAILS ERROR: Stack trace: ${error is Error ? error.stackTrace : 'No stack trace'}');
       throw Exception('An error occurred while fetching user details: $error');
     }
   }
@@ -904,307 +1540,418 @@ class ApiService {
   // Bookmarked Properties
   Future<List<UserProperty>> fetchBookmarkedPropertiesForUser(
       {required String userId}) async {
-    final url = '$baseUrl/bookmarked_properties.php?user_id=$userId';
-
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final decodedResponse = json.decode(response.body);
-
-      // Extract properties from response
-      List<dynamic> data;
-      if (decodedResponse is Map<String, dynamic> &&
-          decodedResponse.containsKey('bookmarked_properties')) {
-        data = decodedResponse['bookmarked_properties'];
-      } else {
-        throw Exception('Unexpected response format');
+    try {
+      print('🔍 FETCH BOOKMARKS: Requesting bookmarked properties for user $userId');
+      final supabase = Supabase.instance.client;
+      
+      // Get bookmarked properties with all related media
+      final List<dynamic> bookmarks = await supabase
+          .from('bookmarks')
+          .select('*, property:property_id(*)')
+          .eq('user_id', userId);
+      
+      print('✅ FETCH BOOKMARKS: Found ${bookmarks.length} bookmarked properties');
+      
+      if (bookmarks.isEmpty) {
+        return [];
       }
-
-      return data.map((property) => UserProperty.fromJson(property)).toList();
-    } else {
-      throw Exception('Failed to load bookmarked properties');
+      
+      // Extract the property data from each bookmark and convert to UserProperty objects
+      final List<UserProperty> properties = [];
+      
+      for (var i = 0; i < bookmarks.length; i++) {
+        try {
+          final bookmark = bookmarks[i];
+          final propertyData = bookmark['property'];
+          
+          if (propertyData == null) {
+            print('⚠️ FETCH BOOKMARKS: Bookmark ${i+1} has no property data');
+            continue;
+          }
+          
+          // Fetch media for this property
+          final List<dynamic> mediaItems = await supabase
+              .from('property_media')
+              .select()
+              .eq('property_id', propertyData['id'])
+              .order('created_at');
+              
+          // Add media to property data
+          propertyData['property_media'] = mediaItems;
+          
+          // Create UserProperty object
+          final property = UserProperty.fromJson(propertyData);
+          properties.add(property);
+          print('✅ FETCH BOOKMARKS: Successfully parsed property ${i+1}/${bookmarks.length}');
+          
+        } catch (e) {
+          print('❌ FETCH BOOKMARKS ERROR: Failed to parse property ${i+1}: $e');
+          // Continue processing other bookmarks
+        }
+      }
+      
+      print('✅ FETCH BOOKMARKS: Returning ${properties.length} parsed properties');
+      return properties;
+    } catch (e) {
+      print('❌ FETCH BOOKMARKS ERROR: Exception: $e');
+      print('❌ FETCH BOOKMARKS ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to load bookmarked properties: $e');
     }
   }
 
   // Spaces
-  static Future<List<SpaceCategory>> fetchSpaceCategories() async {
+  Future<List<SpaceCategory>> fetchSpaceCategories() async {
     try {
-      print('Fetching space categories from: $baseUrl/user/fetch_space_categories.php');
-      final response = await http.get(Uri.parse('$baseUrl/user/fetch_space_categories.php'));
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      print('🔍 FETCH SPACE CATEGORIES: Requesting categories from Supabase');
+      final supabase = Supabase.instance.client;
       
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'success') {
-          print('Successfully fetched ${(data['data'] as List).length} categories');
-          return (data['data'] as List)
-              .map((category) => SpaceCategory.fromJson(category))
-              .toList();
-        } else {
-          print('API Error: ${data['message'] ?? 'No error message provided'}');
-          throw Exception(data['message'] ?? 'Failed to load categories');
-        }
-      } else {
-        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        throw Exception('Failed to load categories - HTTP ${response.statusCode}');
-      }
+      // Get all space categories
+      final List<dynamic> categories = await supabase
+          .from('space_categories')
+          .select('*, subcategories(*)')
+          .order('display_order');
+      
+      print('✅ FETCH SPACE CATEGORIES: Successfully fetched ${categories.length} categories');
+      
+      // Convert to SpaceCategory objects
+      final result = categories
+          .map((category) => SpaceCategory.fromJson(category))
+          .toList();
+          
+      return result;
     } catch (e) {
-      print('Exception in fetchSpaceCategories: $e');
-      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
-      rethrow;
+      print('❌ FETCH SPACE CATEGORIES ERROR: Exception: $e');
+      print('❌ FETCH SPACE CATEGORIES ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to load space categories: $e');
     }
   }
 
-  static Future<List<Space>> fetchSpaces({
+  Future<List<Space>> fetchSpaces({
     String? categoryId,
     String? subcategoryId,
     String? userId,
   }) async {
     try {
-      final Map<String, String> queryParams = {};
-      if (categoryId != null) queryParams['category_id'] = categoryId;
-      if (subcategoryId != null) queryParams['subcategory_id'] = subcategoryId;
-      // if (userId != null) queryParams['user_id'] = userId;
-
-      final uri = Uri.parse('$baseUrl/user/fetch_spaces.php').replace(queryParameters: queryParams);
-      print('Fetching spaces from: $uri');
+      print('🔍 FETCH SPACES: Requesting spaces with filters - categoryId: $categoryId, subcategoryId: $subcategoryId, userId: $userId');
+      final supabase = Supabase.instance.client;
       
-      final response = await http.get(uri);
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'success') {
-          print('Successfully fetched ${(data['data'] as List).length} spaces');
-          return (data['data'] as List)
-              .map((space) => Space.fromJson(space))
-              .toList();
-        } else {
-          print('API Error: ${data['message'] ?? 'No error message provided'}');
-          throw Exception(data['message'] ?? 'Failed to load spaces');
-        }
-      } else {
-        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        throw Exception('Failed to load spaces - HTTP ${response.statusCode}');
+      // Start building the query
+      var query = supabase
+          .from('spaces')
+          .select('*, category:category_id(*), subcategory:subcategory_id(*), user:user_id(*), space_media(*)');
+      
+      // Apply filters
+      if (categoryId != null) {
+        query = query.eq('category_id', categoryId);
       }
+      
+      if (subcategoryId != null) {
+        query = query.eq('subcategory_id', subcategoryId);
+      }
+      
+      if (userId != null) {
+        query = query.eq('user_id', userId);
+      }
+      
+      // Execute the query with ordering
+      final List<dynamic> spaces = await query.order('created_at', ascending: false);
+      
+      print('✅ FETCH SPACES: Successfully fetched ${spaces.length} spaces');
+      
+      // Convert to Space objects
+      final result = spaces
+          .map((space) => Space.fromJson(space))
+          .toList();
+          
+      return result;
     } catch (e) {
-      print('Exception in fetchSpaces: $e');
-      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
-      rethrow;
+      print('❌ FETCH SPACES ERROR: Exception: $e');
+      print('❌ FETCH SPACES ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to load spaces: $e');
     }
   }
 
-  static Future<Map<String, dynamic>> addSpace(Map<String, dynamic> spaceData) async {
+  Future<Map<String, dynamic>> addSpace(Map<String, dynamic> spaceData) async {
     try {
-      print('Adding space with data: ${jsonEncode(spaceData)}');
-      final response = await http.post(
-        Uri.parse('$baseUrl/user/add_space.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(spaceData),
-      );
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final result = jsonDecode(response.body);
-        if (result['status'] == 'success') {
-          print('Successfully added space with ID: ${result['space_id']}');
-        } else {
-          print('API Error: ${result['message'] ?? 'No error message provided'}');
-        }
-        return result;
-      } else {
-        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        throw Exception('Failed to add space - HTTP ${response.statusCode}');
+      print('🏢 ADD SPACE: Starting space creation with data: ${jsonEncode(spaceData)}');
+      final supabase = Supabase.instance.client;
+      
+      // Add creation timestamp if not present
+      if (!spaceData.containsKey('created_at')) {
+        spaceData['created_at'] = DateTime.now().toIso8601String();
       }
+      
+      // Generate random ID for space if not provided
+      if (!spaceData.containsKey('id')) {
+        final random = Random.secure();
+        final randomString = List.generate(20, (_) => random.nextInt(16).toRadixString(16)).join();
+        spaceData['id'] = 'space_$randomString';
+      }
+      
+      // Insert the space into the database
+      await supabase.from('spaces').insert(spaceData);
+      
+      print('✅ ADD SPACE: Successfully added space with ID: ${spaceData['id']}');
+      
+      return {
+        'status': 'success',
+        'message': 'Space added successfully',
+        'space_id': spaceData['id']
+      };
     } catch (e) {
-      print('Exception in addSpace: $e');
-      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
-      rethrow;
+      print('❌ ADD SPACE ERROR: Exception: $e');
+      print('❌ ADD SPACE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      
+      return {
+        'status': 'error',
+        'message': 'Failed to add space: $e'
+      };
     }
   }
 
-  static Future<Map<String, dynamic>> uploadSpaceMedia(
+  Future<Map<String, dynamic>> uploadSpaceMedia(
     String spaceId, 
     String mediaType, 
-    dynamic fileData, // Can be File, Uint8List, or String path
+    dynamic fileData, // Can be XFile, Uint8List, String path, or html.File (web)
     bool isThumbnail,
   ) async {
     try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/user/upload_space_media.php'),
-      );
-
-      // Add required fields
-      request.fields['space_id'] = spaceId;
-      request.fields['media_type'] = mediaType;
-      request.fields['thumb'] = isThumbnail ? '1' : '0';
-
-      // Handle different file types
-      if (fileData is File) {
-        request.files.add(await http.MultipartFile.fromPath(
-          'media_file',
-          fileData.path,
-        ));
-      } else if (fileData is Uint8List) {
-        if (kIsWeb) {
-          // For web - convert bytes directly
-          request.files.add(http.MultipartFile.fromBytes(
-            'media_file',
-            fileData,
-            filename: 'space_media_${DateTime.now().millisecondsSinceEpoch}.jpg',
-          ));
+      print('🖼️ UPLOAD SPACE MEDIA: Starting upload for space $spaceId, mediaType $mediaType, thumbnail $isThumbnail');
+      final supabase = Supabase.instance.client;
+      
+      // Determine storage bucket
+      String bucketName = mediaType == 'video' ? 'spaces-videos' : 'spaces-images';
+      String contentType = mediaType == 'video' ? 'video/mp4' : 'image/jpeg';
+      String fileExtension = mediaType == 'video' ? '.mp4' : '.jpg';
+      
+      // Generate a unique filename
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final fileName = '${spaceId}_$timestamp$fileExtension';
+      String fileUrl = '';
+      
+      // Convert all file types to bytes first
+      Uint8List bytes;
+      
+      if (kIsWeb) {
+        // Web platform handling
+        if (fileData is html.File) {
+          bytes = await _readHtmlFile(fileData);
+        } else if (fileData is String && fileData.startsWith('blob:')) {
+          bytes = await _readBlobData(fileData);
+        } else if (fileData is String && fileData.startsWith('data:')) {
+          final commaIndex = fileData.indexOf(',');
+          if (commaIndex == -1) throw Exception('Invalid data URI format');
+          bytes = base64Decode(fileData.substring(commaIndex + 1));
+        } else if (fileData is Uint8List) {
+          bytes = fileData;
+        } else if (fileData is XFile) {
+          bytes = await fileData.readAsBytes();
         } else {
-          // For mobile - save to temp file first
-          final tempFile = File('${(await getTemporaryDirectory()).path}/temp_${DateTime.now().millisecondsSinceEpoch}.jpg');
-          await tempFile.writeAsBytes(fileData);
-          request.files.add(await http.MultipartFile.fromPath(
-            'media_file',
-            tempFile.path,
-          ));
-          await tempFile.delete();
+          return {'status': 'error', 'message': 'Unsupported file type for web'};
         }
-      } else if (fileData is String) {
-        request.files.add(await http.MultipartFile.fromPath(
-          'media_file',
-          fileData,
-        ));
       } else {
-        throw ArgumentError('Unsupported file type');
+        // Mobile platform handling
+        if (fileData is XFile) {
+          bytes = await fileData.readAsBytes();
+        } else if (fileData is String) {
+          bytes = await io.File(fileData).readAsBytes();
+        } else if (fileData is Uint8List) {
+          bytes = fileData;
+        } else {
+          return {'status': 'error', 'message': 'Unsupported file type for mobile'};
+        }
       }
-
-      // Send the request
-      final response = await request.send();
-      final responseBody = await response.stream.bytesToString();
-
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('HTTP ${response.statusCode}: $responseBody');
-      }
-
-      final result = jsonDecode(responseBody);
-      if (result['status'] != 'success') {
-        throw Exception(result['message'] ?? 'Upload failed');
-      }
-
-      return result;
+      
+      // Upload the bytes to Supabase
+      await supabase.storage
+          .from(bucketName)
+          .uploadBinary(fileName, bytes, fileOptions: FileOptions(contentType: contentType));
+      
+      fileUrl = supabase.storage.from(bucketName).getPublicUrl(fileName);
+      print('✅ UPLOAD SPACE MEDIA: Successfully uploaded to $fileUrl');
+      
+      // Save media information to database
+      final mediaData = {
+        'space_id': spaceId,
+        'media_url': fileUrl,
+        'media_type': mediaType,
+        'is_thumbnail': isThumbnail,
+        'created_at': DateTime.now().toIso8601String()
+      };
+      
+      await supabase.from('space_media').insert(mediaData);
+      
+      print('✅ UPLOAD SPACE MEDIA: Media information saved to database');
+      
+      return {
+        'status': 'success',
+        'message': 'Media uploaded successfully',
+        'file_path': fileUrl,
+        'media_type': mediaType
+      };
     } catch (e) {
-      print('Error uploading space media: $e');
-      throw Exception('Failed to upload space media: $e');
+      print('❌ UPLOAD SPACE MEDIA ERROR: $e');
+      print('❌ UPLOAD SPACE MEDIA ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      return {'status': 'error', 'message': 'Error occurred during media upload: $e'};
     }
   }
 
-  static Future<Map<String, dynamic>> updateSpace(
+  // Helper function for web file reading
+  Future<Uint8List> _readHtmlFile(html.File file) async {
+    final reader = html.FileReader();
+    reader.readAsArrayBuffer(file);
+    await reader.onLoad.first;
+    return reader.result as Uint8List;
+  }
+
+  // Helper function for web blob reading
+  Future<Uint8List> _readBlobData(String blobUrl) async {
+    final completer = Completer<Uint8List>();
+    final xhr = html.HttpRequest();
+    xhr.open('GET', blobUrl);
+    xhr.responseType = 'arraybuffer';
+    xhr.onLoad.listen((_) => completer.complete(Uint8List.fromList(xhr.response as List<int>)));
+    xhr.onError.listen(completer.completeError);
+    xhr.send();
+    return completer.future;
+  }
+
+  Future<Map<String, dynamic>> updateSpace(
       String spaceId, Map<String, dynamic> updatedData) async {
     try {
-      print('Updating space $spaceId with data: ${jsonEncode(updatedData)}');
-      final response = await http.put(
-        Uri.parse('$baseUrl/user/update_space.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'space_id': spaceId, ...updatedData}),
-      );
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final result = jsonDecode(response.body);
-        if (result['status'] == 'success') {
-          print('Successfully updated space $spaceId');
-        } else {
-          print('API Error: ${result['message'] ?? 'No error message provided'}');
-        }
-        return result;
-      } else {
-        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        throw Exception('Failed to update space - HTTP ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Exception in updateSpace: $e');
-      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
-      rethrow;
-    }
-  }
-
-  static Future<Map<String, dynamic>> deleteSpace(String spaceId) async {
-    try {
-      print('Deleting space $spaceId');
-      final response = await http.delete(
-        Uri.parse('$baseUrl/user/delete_space.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'space_id': spaceId}),
-      );
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final result = jsonDecode(response.body);
-        if (result['status'] == 'success') {
-          print('Successfully deleted space $spaceId');
-        } else {
-          print('API Error: ${result['message'] ?? 'No error message provided'}');
-        }
-        return result;
-      } else {
-        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        throw Exception('Failed to delete space - HTTP ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Exception in deleteSpace: $e');
-      print('Stack trace: ${e is Error ? (e).stackTrace : ''}');
-      rethrow;
-    }
-  }
-
-  // Add these methods to your ApiService class
-
-  // Add these methods to your ApiService class
-  Future<bool> checkBusinessProfileExists(int userId) async {
-    print('Checking if business profile exists for user $userId');
-    try {
-      final url = '$baseUrl/business_profiles.php?action=exists&user_id=$userId';
-      print('Making request to: $url');
+      print('🏢 UPDATE SPACE: Updating space $spaceId with data: ${jsonEncode(updatedData)}');
+      final supabase = Supabase.instance.client;
       
-      final response = await http.get(Uri.parse(url));
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        print('Exists check result: ${data['exists']}');
-        return data['exists'] == true || data['exists'] == 'true';
-      }
-      print('Request failed with status ${response.statusCode}');
-      return false;
+      // Add updated timestamp
+      updatedData['updated_at'] = DateTime.now().toIso8601String();
+      
+      // Update the space in the database
+      await supabase
+          .from('spaces')
+          .update(updatedData)
+          .eq('id', spaceId);
+          
+      print('✅ UPDATE SPACE: Space updated successfully');
+      
+      return {
+        'status': 'success',
+        'message': 'Space updated successfully',
+        'space_id': spaceId
+      };
     } catch (e) {
-      print('Error in checkBusinessProfileExists: $e');
+      print('❌ UPDATE SPACE ERROR: Exception: $e');
+      print('❌ UPDATE SPACE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      
+      return {
+        'status': 'error',
+        'message': 'Failed to update space: $e'
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteSpace(String spaceId) async {
+    try {
+      print('🗑️ DELETE SPACE: Starting space deletion for ID: $spaceId');
+      final supabase = Supabase.instance.client;
+      
+      // First, find all media files associated with this space
+      final List<dynamic> mediaFiles = await supabase
+          .from('space_media')
+          .select()
+          .eq('space_id', spaceId);
+      
+      print('🗑️ DELETE SPACE: Found ${mediaFiles.length} media files to delete');
+      
+      // Delete each media file from storage
+      for (var mediaFile in mediaFiles) {
+        final String mediaUrl = mediaFile['media_url'];
+        final String mediaType = mediaFile['media_type'];
+        
+        try {
+          // Extract filename from URL
+          final uri = Uri.parse(mediaUrl);
+          final String filename = uri.pathSegments.last;
+          final String bucketName = mediaType == 'video' ? 'spaces-videos' : 'spaces-images';
+          
+          // Remove file from storage
+          await supabase.storage.from(bucketName).remove([filename]);
+          print('✅ DELETE SPACE: Deleted file $filename from storage');
+        } catch (e) {
+          print('⚠️ DELETE SPACE: Error deleting media file $mediaUrl: $e');
+          // Continue with other files even if one deletion fails
+        }
+      }
+      
+      // Delete media records from database
+      await supabase
+          .from('space_media')
+          .delete()
+          .eq('space_id', spaceId);
+      
+      print('✅ DELETE SPACE: Deleted all media records from database');
+      
+      // Finally, delete the space itself
+      await supabase
+          .from('spaces')
+          .delete()
+          .eq('id', spaceId);
+      
+      print('✅ DELETE SPACE: Space deleted successfully');
+      
+      return {
+        'status': 'success',
+        'message': 'Space and associated media deleted successfully'
+      };
+    } catch (e) {
+      print('❌ DELETE SPACE ERROR: Exception: $e');
+      print('❌ DELETE SPACE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      
+      return {
+        'status': 'error',
+        'message': 'Failed to delete space: $e'
+      };
+    }
+  }
+
+  // Business profile methods
+  Future<bool> checkBusinessProfileExists(String userId) async {
+    try {
+      print('🔍 CHECK BUSINESS PROFILE: Looking for profile for user $userId');
+      final supabase = Supabase.instance.client;
+      
+      // Check if a business profile exists for this user
+      final List<dynamic> profiles = await supabase
+          .from('business_profiles')
+          .select()
+          .eq('user_id', userId.toString())
+          .limit(1);
+      
+      final bool exists = profiles.isNotEmpty;
+      
+      print('✅ CHECK BUSINESS PROFILE: Profile exists: $exists');
+      return exists;
+    } catch (e) {
+      print('❌ CHECK BUSINESS PROFILE ERROR: Exception: $e');
+      print('❌ CHECK BUSINESS PROFILE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
       return false;
     }
   }
 
-  Future<Map<String, dynamic>> getBusinessProfile(int userId) async {
-    print('Getting business profile for user $userId');
+  Future<Map<String, dynamic>> getBusinessProfile(String userId) async {
+    print('Getting business profile for user $userId from Supabase');
     try {
-      final url = '$baseUrl/business_profiles.php?user_id=$userId';
-      print('Making request to: $url');
-      
-      final response = await http.get(Uri.parse(url));
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          print('Successfully retrieved profile');
-          return data['data'];
-        } else {
-          print('API returned error: ${data['message']}');
-          throw Exception(data['message'] ?? 'Business profile not found');
-        }
+      final supabase = Supabase.instance.client;
+      final List<dynamic> profiles = await supabase
+          .from('business_profiles')
+          .select()
+          .eq('user_id', userId)
+          .limit(1);
+      if (profiles.isNotEmpty) {
+        print('Successfully retrieved profile');
+        return profiles.first;
       } else {
-        print('Request failed with status ${response.statusCode}');
-        throw Exception('Failed to load business profile');
+        print('Business profile not found');
+        throw Exception('Business profile not found');
       }
     } catch (e) {
       print('Error in getBusinessProfile: $e');
@@ -1212,107 +1959,132 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> createBusinessProfile(int userId, Map<String, dynamic> profile) async {
+  Future<Map<String, dynamic>> createBusinessProfile(String userId, Map<String, dynamic> profile) async {
     print('Creating business profile for user $userId');
     print('Profile data: $profile');
     try {
-      const url = '$baseUrl/business_profiles.php';
-      print('Making POST request to: $url');
+      final supabase = Supabase.instance.client;
       
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'action': 'create',
-          'user_id': userId,
-          ...profile
-        }),
-      );
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return jsonDecode(response.body);
-      } else {
-        print('Request failed with status ${response.statusCode}');
-        throw Exception('Failed to create business profile');
-      }
+      // Add the userId to the profile data
+      final profileData = {
+        'user_id': userId,
+        ...profile,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String()
+      };
+      
+      print('Inserting into supabase business_profiles table');
+      final response = await supabase
+          .from('business_profiles')
+          .insert(profileData)
+          .select()
+          .single();
+      
+      print('Supabase response: $response');
+      
+      return {
+        'success': true,
+        'profile_id': response['id'],
+        'data': response,
+        'message': 'Business profile created successfully'
+      };
     } catch (e) {
-      print('Error in createBusinessProfile: $e');
-      rethrow;
+      print('❌ CREATE BUSINESS PROFILE ERROR: Exception: $e');
+      print('❌ CREATE BUSINESS PROFILE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to create business profile: $e');
     }
   }
 
-  Future<Map<String, dynamic>> updateBusinessProfile(int userId, Map<String, dynamic> profile) async {
+  Future<Map<String, dynamic>> updateBusinessProfile(String userId, Map<String, dynamic> profile) async {
     print('Updating business profile for user $userId');
     print('Profile data: $profile');
     try {
-      const url = '$baseUrl/business_profiles.php';
-      print('Making PUT request to: $url');
+      final supabase = Supabase.instance.client;
       
-      final response = await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'action': 'update',
-          'user_id': userId,
-          ...profile
-        }),
-      );
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return jsonDecode(response.body);
-      } else {
-        print('Request failed with status ${response.statusCode}');
-        throw Exception('Failed to update business profile');
-      }
+      // Add updated timestamp
+      final updatedData = {
+        ...profile,
+        'updated_at': DateTime.now().toIso8601String()
+      };
+      
+      print('Updating supabase business_profiles table');
+      final response = await supabase
+          .from('business_profiles')
+          .update(updatedData)
+          .eq('user_id', userId)
+          .select()
+          .single();
+      
+      print('Supabase response: $response');
+      
+      return {
+        'success': true,
+        'data': response,
+        'message': 'Business profile updated successfully'
+      };
     } catch (e) {
-      print('Error in updateBusinessProfile: $e');
-      rethrow;
+      print('❌ UPDATE BUSINESS PROFILE ERROR: Exception: $e');
+      print('❌ UPDATE BUSINESS PROFILE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
+      throw Exception('Failed to update business profile: $e');
     }
   }
 
-  Future<Map<String, dynamic>> uploadBusinessLogo(int userId, dynamic image) async {
-    print('Uploading business logo for user $userId');
+  Future<Map<String, dynamic>> uploadBusinessLogo(String userId, dynamic image, [String? fileName]) async {
     try {
-      var url = '$baseUrl/upload_business_logo.php';
-      print('Making multipart request to: $url');
-
-      var request = http.MultipartRequest('POST', Uri.parse(url));
-      request.fields['user_id'] = userId.toString();
-
-      if (image is File) {
-        // Handle file upload for mobile/desktop
-        request.files.add(await http.MultipartFile.fromPath('logo', image.path));
-      } else if (image is Uint8List) {
-        // Handle byte array upload for web
-        request.files.add(http.MultipartFile.fromBytes(
-          'logo',
-          image,
-          filename: 'business_logo_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        ));
+      final supabase = Supabase.instance.client;
+      final bucketName = 'business-logos';
+      final contentType = 'image/jpeg';
+      final finalFileName = fileName ?? 'business_logo_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      
+      Uint8List bytes;
+      
+      if (kIsWeb) {
+        // Web platform handling
+        if (image is html.File) {
+          bytes = await _readHtmlFile(image);
+        } else if (image is Uint8List) {
+          bytes = image;
+        } else if (image is String && image.startsWith('blob:')) {
+          bytes = await _readBlobData(image);
+        } else if (image is String && image.startsWith('data:')) {
+          final commaIndex = image.indexOf(',');
+          if (commaIndex == -1) throw Exception('Invalid data URI format');
+          bytes = base64Decode(image.substring(commaIndex + 1));
+        } else {
+          throw Exception('Unsupported image type for web');
+        }
       } else {
-        throw ArgumentError('Unsupported image type');
+        // Mobile platform handling
+        if (image is io.File) {
+          bytes = await image.readAsBytes();
+        } else if (image is Uint8List) {
+          bytes = image;
+        } else if (image is String) {
+          bytes = await io.File(image).readAsBytes();
+        } else {
+          throw Exception('Unsupported image type for mobile');
+        }
       }
-
-      print('Sending logo upload request...');
-      final response = await request.send();
-      print('Upload response status: ${response.statusCode}');
-
-      final responseBody = await response.stream.bytesToString();
-      print('Upload response body: $responseBody');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return jsonDecode(responseBody);
-      } else {
-        print('Logo upload failed with status ${response.statusCode}');
-        throw Exception('Failed to upload logo: $responseBody');
-      }
+      
+      await supabase.storage
+          .from(bucketName)
+          .uploadBinary(finalFileName, bytes, fileOptions: FileOptions(contentType: contentType));
+      
+      final fileUrl = supabase.storage.from(bucketName).getPublicUrl(finalFileName);
+      
+      return {
+        'success': true,
+        'url': fileUrl,
+        'message': 'Logo uploaded successfully'
+      };
     } catch (e) {
-      print('Error in uploadBusinessLogo: $e');
-      throw Exception('Error uploading logo: $e');
+      print('❌ UPLOAD LOGO ERROR: $e');
+      return {
+        'success': false,
+        'message': 'Failed to upload logo: $e'
+      };
     }
   }
+
+  
 }

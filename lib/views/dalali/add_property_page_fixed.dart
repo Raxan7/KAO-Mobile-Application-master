@@ -1,18 +1,17 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data'; // For Uint8List
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb; // Add kIsWeb for platform check
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kao_app/views/dalali/dalali_dashboard.dart';
-import '../../services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/supabase_service.dart'; // Using Supabase service instead of API service
 import '../../widgets/dalali/dalali_navigation_drawer.dart';
 
 class AddPropertyPage extends StatefulWidget {
-  final String userId;
-  
-  const AddPropertyPage({super.key, required this.userId});
+  const AddPropertyPage({super.key});
 
   @override
   _AddPropertyPageState createState() => _AddPropertyPageState();
@@ -20,6 +19,7 @@ class AddPropertyPage extends StatefulWidget {
 
 class _AddPropertyPageState extends State<AddPropertyPage> {
   final _formKey = GlobalKey<FormState>();
+  final SupabaseService _supabaseService = SupabaseService(); // Using SupabaseService instead of ApiService
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _sizeController = TextEditingController();
@@ -32,9 +32,6 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   // Media files
   final List<File> _imageFiles = []; // List to store multiple image files
   File? _videoFile;
-  
-  // API service instance
-  final ApiService _apiService = ApiService();
   
   // Upload options
   String _mediaUploadMode = 'both'; // Options: 'image', 'video', 'both'
@@ -142,15 +139,38 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
   // Handle video picking
   Future<void> _pickVideo() async {
-    final pickedFile = await _picker.pickVideo(
-      source: ImageSource.gallery,
-      maxDuration: const Duration(minutes: 5), // Limit to 5 minutes
-    );
-    setState(() {
+    try {
+      final pickedFile = await _picker.pickVideo(
+        source: ImageSource.gallery,
+        maxDuration: const Duration(minutes: 5), // Limit to 5 minutes
+      );
+      
       if (pickedFile != null) {
-        _videoFile = File(pickedFile.path);
+        // Debug information
+        File videoFile = File(pickedFile.path);
+        bool exists = await videoFile.exists();
+        int fileSize = exists ? await videoFile.length() : 0;
+        
+        print('🎥 VIDEO PICK: File exists: $exists');
+        print('🎥 VIDEO PICK: File path: ${pickedFile.path}');
+        print('🎥 VIDEO PICK: File size: $fileSize bytes');
+        
+        if (fileSize > 0) {
+          setState(() {
+            _videoFile = videoFile;
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Selected video file is empty or inaccessible')),
+          );
+        }
       }
-    });
+    } catch (e) {
+      print('🎥 VIDEO PICK ERROR: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking video: $e')),
+      );
+    }
   }
   
   // Remove the video
@@ -420,22 +440,18 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       });
 
       try {
-        print('📋 ADD PROPERTY PAGE: Form validated, starting property addition process');
-        
-        // Use userId directly from the widget
-        final String userId = widget.userId;
-        if (userId.isEmpty) {
-          print('❌ ADD PROPERTY PAGE ERROR: Invalid User ID');
+        // Retrieve user details from SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        String? userId = prefs.getString('userId');
+        if (userId == null || userId.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Invalid User ID. Please log in again.')),
+            const SnackBar(content: Text('User ID not found. Please log in again.')),
           );
           setState(() {
             _isLoading = false;
           });
           return;
         }
-        
-        print('👤 ADD PROPERTY PAGE: User ID = $userId');
 
         // Property data preparation
         final propertyData = {
@@ -448,97 +464,120 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
           'status': _status ?? '',
           'location': _locationController.text,
         };
-        
-        print('🏠 ADD PROPERTY PAGE: Property data prepared = $propertyData');
-        print('🏠 ADD PROPERTY PAGE: Media upload mode = $_mediaUploadMode');
-        print('🏠 ADD PROPERTY PAGE: Number of image files = ${_imageFiles.length}');
-        print('🏠 ADD PROPERTY PAGE: Video file exists = ${_videoFile != null}');
 
-        // API call to add property
-        print('🚀 ADD PROPERTY PAGE: Making API call to add property');
-        final response = await _apiService.addProperty(propertyData);
-        print('📩 ADD PROPERTY PAGE: Property addition response = $response');
-        
+        // API call to add property using Supabase service
+        final response = await _supabaseService.addProperty(propertyData);
         if (response['status'] == 'success') {
           final propertyId = response['property_id'];
-          print('✅ ADD PROPERTY PAGE: Property added successfully with ID = $propertyId');
 
           // Upload all selected images if mode allows
           if ((_mediaUploadMode == 'image' || _mediaUploadMode == 'both') && _imageFiles.isNotEmpty) {
-            print('📸 ADD PROPERTY PAGE: Starting image upload process for ${_imageFiles.length} images');
-            int imageIndex = 0;
-            
             for (var imageFile in _imageFiles) {
-              print('📸 ADD PROPERTY PAGE: Uploading image ${++imageIndex}/${_imageFiles.length}, path: ${imageFile.path}');
-              
-              try {
-                final uploadResponse = await _apiService.uploadPropertyMedia(
-                  propertyId, 'image', imageFile.path, false);
-                print('📸 ADD PROPERTY PAGE: Image upload response = $uploadResponse');
-              } catch (uploadError) {
-                print('❌ ADD PROPERTY PAGE ERROR: Image upload failed: $uploadError');
-                print('❌ ADD PROPERTY PAGE ERROR: Stack trace: ${uploadError is Error ? uploadError.stackTrace : 'No stack trace'}');
-              }
+              await _supabaseService.uploadPropertyMedia(
+                  propertyId.toString(), 'image', imageFile.path, false);
             }
           }
           
           // Upload video if available and mode allows
           if ((_mediaUploadMode == 'video' || _mediaUploadMode == 'both') && _videoFile != null) {
-            print('🎥 ADD PROPERTY PAGE: Starting video upload process, path: ${_videoFile!.path}');
-            
             try {
-              // Check if we're on web platform and have a blob URL (starts with 'blob:')
-              if (kIsWeb && _videoFile!.path.startsWith('blob:')) {
-                print('🌐 ADD PROPERTY PAGE: Detected web blob URL for video, using specialized handler');
-                // Use our specialized handler for blob URLs on web
-                final uploadResponse = await _apiService.uploadPropertyMedia(
-                  propertyId, 'video', _videoFile!.path, false);
-                print('🎥 ADD PROPERTY PAGE: Video upload response = $uploadResponse');
-              } else {
-                // Regular upload for mobile platforms
-                final uploadResponse = await _apiService.uploadPropertyMedia(
-                  propertyId, 'video', _videoFile!.path, false);
-                print('🎥 ADD PROPERTY PAGE: Video upload response = $uploadResponse');
+              // Verify video file is valid before upload
+              bool exists = await _videoFile!.exists();
+              int fileSize = exists ? await _videoFile!.length() : 0;
+              
+              print('🎬 VIDEO UPLOAD: File exists: $exists');
+              print('🎬 VIDEO UPLOAD: File path: ${_videoFile!.path}');
+              print('🎬 VIDEO UPLOAD: File size: $fileSize bytes');
+              
+              if (!exists || fileSize <= 0) {
+                throw Exception('Video file is empty or inaccessible');
               }
-            } catch (uploadError) {
-              print('❌ ADD PROPERTY PAGE ERROR: Video upload failed: $uploadError');
-              print('❌ ADD PROPERTY PAGE ERROR: Stack trace: ${uploadError is Error ? uploadError.stackTrace : 'No stack trace'}');
+              
+              // Read video data to confirm it's accessible - with platform-safe approach
+              try {
+                try {
+                  // Try the full featured approach first
+                  final randomAccess = await _videoFile!.open(mode: FileMode.read);
+                  await randomAccess.close();
+                  print('🎬 VIDEO UPLOAD: Successfully tested file access');
+                } catch (e) {
+                  // Fallback to simpler approach
+                  print('🎬 VIDEO UPLOAD: Using alternative file access test due to: $e');
+                }
+                
+                // Read a small portion to verify readability if this method is available
+                try {
+                  final firstBytes = await _videoFile!.readAsBytes().timeout(
+                    const Duration(seconds: 3),
+                    onTimeout: () => Uint8List(0) // Empty bytes on timeout
+                  );
+                  if (firstBytes.isNotEmpty) {
+                    print('🎬 VIDEO UPLOAD: Successfully read ${firstBytes.length} bytes');
+                  } else {
+                    print('🎬 VIDEO UPLOAD WARNING: File appears empty');
+                  }
+                } catch (bytesError) {
+                  print('🎬 VIDEO UPLOAD: Could not read sample bytes: $bytesError');
+                  // This is not fatal, we'll let the upload proceed anyway
+                }
+              } catch (accessError) {
+                print('🎬 VIDEO UPLOAD ERROR: File access error: $accessError');
+                throw Exception('Cannot access video file content: $accessError');
+              }
+              
+              // Show upload progress in UI
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Uploading video... This may take a while.')),
+              );
+              
+              // Upload with extra error handling
+              final videoResponse = await _supabaseService.uploadPropertyMedia(
+                propertyId.toString(), 'video', _videoFile!.path, false);
+              
+              print('🎬 VIDEO UPLOAD RESPONSE: $videoResponse');
+              
+              if (videoResponse['status'] == 'error') {
+                throw Exception(videoResponse['message'] ?? 'Unknown error uploading video');
+              }
+              
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Video uploaded successfully!')),
+              );
+            } catch (e) {
+              print('🎬 VIDEO UPLOAD ERROR: $e');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Warning: Video upload failed: $e')),
+              );
+              // Continue with the rest of the process even if video upload fails
             }
           }
 
-          print('✅ ADD PROPERTY PAGE: All media uploads completed');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Property added successfully!')),
           );
 
           // Navigate to the dashboard
-          print('🔄 ADD PROPERTY PAGE: Navigating to dashboard');
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => DalaliDashboard(userId: userId),
+              builder: (context) => DalaliDashboard(userId: int.parse(userId)),
             ),
           );
         } else {
-          print('❌ ADD PROPERTY PAGE ERROR: Property addition failed, response = $response');
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to add property: ${response['message'] ?? 'Unknown error'}')),
+            const SnackBar(content: Text('Failed to add property')),
           );
         }
       } catch (e) {
-        print('❌ ADD PROPERTY PAGE ERROR: Exception during property addition: $e');
-        print('❌ ADD PROPERTY PAGE ERROR: Stack trace: ${e is Error ? e.stackTrace : 'No stack trace'}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
       } finally {
         setState(() {
           _isLoading = false; // Hide loader when done
-          print('🔄 ADD PROPERTY PAGE: Loading state set to false');
         });
       }
-    } else {
-      print('❌ ADD PROPERTY PAGE ERROR: Form validation failed');
     }
   }
 

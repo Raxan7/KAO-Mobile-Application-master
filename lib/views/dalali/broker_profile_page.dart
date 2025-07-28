@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:kao_app/services/api_service.dart';
 
 class BrokerProfilePage extends StatelessWidget {
-  final int userId;
+  final String userId;
+  final ApiService _apiService = ApiService();
 
-  const BrokerProfilePage({super.key, required this.userId});
+  BrokerProfilePage({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +16,7 @@ class BrokerProfilePage extends StatelessWidget {
         centerTitle: true,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
-        future: ApiService.fetchSenderDetails(userId),
+        future: _apiService.fetchSenderDetails(userId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

@@ -12,15 +12,28 @@ class AuthService {
     await prefs.remove('phonenum');
     await prefs.remove('address');
     
-    Navigator.pop(context); // Close the drawer
-    Navigator.pushReplacementNamed(context, '/home'); // Navigate to home after logout
+    // Close the drawer first
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+    
+    // Navigate to home screen safely
+    // Using pushNamedAndRemoveUntil to clear the navigation stack
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/home',
+      (route) => false, // Remove all previous routes
+    );
   }
 
-  Future<Map<String, String?>> _getUserInfo() async {
+  // Helper method to get user info if needed in the future
+  static Future<Map<String, String?>> getUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
     return {
       'name': prefs.getString('name'),
       'email': prefs.getString('email'),
+      'userId': prefs.getString('userId'),
+      'role': prefs.getString('role'),
     };
   }
     

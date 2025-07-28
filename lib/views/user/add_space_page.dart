@@ -28,6 +28,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
 
   final List<dynamic> _imageFiles = []; // Use dynamic to handle both File and Uint8List
   final ImagePicker _picker = ImagePicker();
+  final ApiService _apiService = ApiService();
   bool _isLoading = false;
   bool _showImagePicker = true;
   Timer? _timer;
@@ -85,7 +86,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
 
   Future<void> _loadCategories() async {
     try {
-      final categories = await ApiService.fetchSpaceCategories();
+      final categories = await _apiService.fetchSpaceCategories();
       setState(() {
         _categories = categories;
       });
@@ -195,7 +196,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
         };
 
         // Add space
-        final response = await ApiService.addSpace(spaceData);
+        final response = await _apiService.addSpace(spaceData);
         if (response['status'] == 'success') {
           final spaceId = response['space_id'].toString();
 
@@ -203,7 +204,7 @@ class _AddSpacePageState extends State<AddSpacePage> {
           for (var i = 0; i < _imageFiles.length; i++) {
             try {
               final isThumbnail = i == 0; // First image as thumbnail
-              await ApiService.uploadSpaceMedia(
+              await _apiService.uploadSpaceMedia(
                 spaceId,
                 'image',
                 _imageFiles[i], // Pass the file data directly

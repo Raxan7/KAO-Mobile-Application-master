@@ -173,7 +173,7 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
               title: Text('My Enquiries', style: TextStyle(fontSize: titleFontSize)),
               contentPadding: listTilePadding,
               onTap: () {
-                final userId = int.parse(widget.userId ?? '0');
+                final userId = widget.userId ?? '';
                 _navigateTo(context, DetailedEnquiriesPage(userId: userId));
               },
             ),
@@ -347,7 +347,13 @@ class _PersistentDrawerState extends State<PersistentDrawer> {
               leading: Icon(Icons.logout, size: iconSize),
               title: Text('Logout', style: TextStyle(fontSize: titleFontSize)),
               onTap: () async {
-                await AuthService.logout(context);
+                try {
+                  await AuthService.logout(context);
+                } catch (e) {
+                  print('Error during logout: $e');
+                  // Fallback navigation if the normal logout fails
+                  Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+                }
               },
             ),
           ],

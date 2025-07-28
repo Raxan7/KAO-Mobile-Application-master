@@ -133,7 +133,7 @@ class _DalaliNavigationDrawerState extends State<DalaliNavigationDrawer> {
               _userInfoFuture.then((userInfo) {
                 final userIdString = userInfo['userId'];
                 if (userIdString != null) {
-                  final userId = int.parse(userIdString); // Convert to int
+                  final userId = userIdString;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -153,7 +153,7 @@ class _DalaliNavigationDrawerState extends State<DalaliNavigationDrawer> {
               _userInfoFuture.then((userInfo) {
                 final userIdString = userInfo['userId'];
                 if (userIdString != null) {
-                  final userId = int.parse(userIdString);
+                  final userId = userIdString;
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => PropertyListPage(userId: userId)),
@@ -166,10 +166,15 @@ class _DalaliNavigationDrawerState extends State<DalaliNavigationDrawer> {
             leading: const Icon(Icons.add_business),
             title: const Text('Add New Property'),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AddPropertyPage()),
-              );
+              _userInfoFuture.then((userInfo) {
+                final userId = userInfo['userId'] ?? '0';
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddPropertyPage(userId: userId),
+                  ),
+                );
+              });
             },
           ),
           ListTile(
@@ -179,7 +184,7 @@ class _DalaliNavigationDrawerState extends State<DalaliNavigationDrawer> {
               _userInfoFuture.then((userInfo) {
                 final userIdString = userInfo['userId'];
                 if (userIdString != null) {
-                  final userId = int.parse(userIdString);
+                  final userId = userIdString;
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => DetailedEnquiriesPage(userId: userId)),
@@ -195,7 +200,7 @@ class _DalaliNavigationDrawerState extends State<DalaliNavigationDrawer> {
               _userInfoFuture.then((userInfo) {
                 final userIdString = userInfo['userId'];
                 if (userIdString != null) {
-                  final userId = int.parse(userIdString);
+                  final userId = userIdString;
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => NotificationsPage(targetUserId: userId)),

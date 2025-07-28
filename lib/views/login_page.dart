@@ -9,24 +9,32 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import 'register_page.dart'; // Import Google Sign-In package
 
+
 class LoginPage extends StatefulWidget {
   final String? redirectPage; // Parameter for redirecting to a specific page
 
   const LoginPage({super.key, this.redirectPage});
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  String? _errorEmail;
   final TextEditingController _emailController = TextEditingController();
-  String? _errorPassword;
   final TextEditingController _passwordController = TextEditingController();
   final ApiService apiService = ApiService(); // Create an instance of ApiService
 
-  // Instance of GoogleSignIn
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  void _showErrorPopup(String? message) {
+    if (message == null || message.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,25 +87,21 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   CommonTextFieldView(
                     controller: _emailController,
-                    errorText: _errorEmail,
+                    errorText: null,
                     titleText: 'Your Email',
                     hintText: 'Enter your email',
                     keyboardType: TextInputType.emailAddress,
                     isDesktop: isDesktop,
-                    onChanged: (String txt) {
-                      setState(() => _errorEmail = null);
-                    },
+                    onChanged: (String txt) {},
                   ),
                   CommonTextFieldView(
                     controller: _passwordController,
-                    errorText: _errorPassword,
+                    errorText: null,
                     titleText: 'Password',
                     hintText: 'Enter your password',
                     isObscureText: true,
                     isDesktop: isDesktop,
-                    onChanged: (String txt) {
-                      setState(() => _errorPassword = null);
-                    },
+                    onChanged: (String txt) {},
                   ),
                   _forgotPasswordUI(isDesktop),
                   CommonButton(
@@ -110,18 +114,14 @@ class _LoginPageState extends State<LoginPage> {
                             _emailController.text.trim(),
                             _passwordController.text.trim(),
                           );
-
-                          if (response['success']) {
+                          // Use 'status' instead of 'success' for loginUser
+                          if (response['status'] == 'success') {
                             await _handleLoginSuccess(response);
                           } else {
-                            setState(() {
-                              _errorPassword = response['message'];
-                            });
+                          _showErrorPopup(response['message']);
                           }
                         } catch (e) {
-                          setState(() {
-                            _errorPassword = 'An error occurred. Please try again.';
-                          });
+                          _showErrorPopup('An error occurred. Please try again.');
                         }
                       }
                     },
@@ -176,42 +176,16 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Future<void> _handleGoogleSignIn() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser != null) {
-        // Retrieve user details from Google Account
-        String displayName = googleUser.displayName ?? 'User';
-        String email = googleUser.email;
-        String googleId = googleUser.id;
-        String profilePic = googleUser.photoUrl ?? '';
 
-        // Send the data to your backend for login/registration
-        final response = await apiService.loginWithGoogle(email, googleId, displayName, profilePic);
-        if (response['success']) {
-          await _handleLoginSuccess(response);
-        } else {
-          setState(() {
-            _errorPassword = response['message'];
-          });
-        }
-      }
-    } catch (error) {
-      // print('Google sign-in failed: $error');
-      setState(() {
-        _errorPassword = 'Google sign-in failed. Please try again.';
-      });
-    }
-  }
 
 
   Future<void> _handleLoginSuccess(Map<String, dynamic> response) async {
     String token = response['token'] ?? '';
     String name = response['name'] ?? 'User';
-    String email = _emailController.text.trim();
+    String email = response['email'] ?? _emailController.text.trim();
     String role = response['role'] ?? 'user';
     String userId = (response['userId'] ?? '').toString();
-    String phonenum = response['phonenum'] ?? '';
+    String phonenum = response['phone'] ?? '';
     String address = response['address'] ?? '';
 
     await UserPreferences().saveUserDetails(
@@ -247,21 +221,16 @@ class _LoginPageState extends State<LoginPage> {
 
     final emailError = Validators.validateEmail(_emailController.text.trim());
     if (emailError != null) {
-      _errorEmail = emailError;
+      _showErrorPopup(emailError);
       isValid = false;
-    } else {
-      _errorEmail = null;
     }
 
     final passwordError = Validators.validatePassword(_passwordController.text.trim());
     if (passwordError != null) {
-      _errorPassword = passwordError;
+      _showErrorPopup(passwordError);
       isValid = false;
-    } else {
-      _errorPassword = null;
     }
 
-    setState(() {});
     return isValid;
   }
 }

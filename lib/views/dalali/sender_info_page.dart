@@ -3,10 +3,11 @@ import 'package:kao_app/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SenderInfoPage extends StatelessWidget {
-  final int userId;
-  final int propertyId;
+  final String userId;
+  final String propertyId;
+  final ApiService _apiService = ApiService();
 
-  const SenderInfoPage({super.key, required this.userId, required this.propertyId});
+  SenderInfoPage({super.key, required this.userId, required this.propertyId});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +18,7 @@ class SenderInfoPage extends StatelessWidget {
         centerTitle: true,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
-        future: ApiService.fetchSenderDetails(userId),
+        future: _apiService.fetchSenderDetails(userId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -30,10 +31,7 @@ class SenderInfoPage extends StatelessWidget {
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
-              child: Text(
-                'No sender information available',
-                style: TextStyle(fontSize: 16),
-              ),
+              child: Text('No data found'),
             );
           } else {
             final senderData = snapshot.data!;
@@ -42,65 +40,17 @@ class SenderInfoPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Card(
-                    elevation: 5,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            senderData['name'],
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.teal,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              const Icon(Icons.email, color: Colors.grey),
-                              const SizedBox(width: 10),
-                              Text(
-                                senderData['email'],
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              const Icon(Icons.phone, color: Colors.grey),
-                              const SizedBox(width: 10),
-                              Text(
-                                senderData['phonenum'],
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on, color: Colors.grey),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  senderData['address'],
-                                  style: const TextStyle(fontSize: 16),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                  Text(
+                    'Name: ${senderData['name']}',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
+                  Text('Email: ${senderData['email']}', style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Text('Phone: ${senderData['phonenum']}', style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Text('Address: ${senderData['address']}', style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -120,43 +70,6 @@ class SenderInfoPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Spacer(),
-                  Center(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 24,
-                        ),
-                      ),
-                      icon: const Icon(Icons.contact_phone),
-                      label: const Text(
-                        'Contact Now',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      onPressed: () async {
-                        final phoneNumber = senderData['phonenum'];
-                        final Uri phoneUri = Uri(
-                          scheme: 'tel',
-                          path: phoneNumber,
-                        );
-
-                        if (await canLaunchUrl(phoneUri)) {
-                          await launchUrl(phoneUri);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Unable to open phone dialer'),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
                 ],
               ),
             );
@@ -166,3 +79,4 @@ class SenderInfoPage extends StatelessWidget {
     );
   }
 }
+                         

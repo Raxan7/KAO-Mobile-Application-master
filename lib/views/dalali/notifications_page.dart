@@ -5,9 +5,10 @@ import 'sender_info_page.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class NotificationsPage extends StatelessWidget {
-  final int targetUserId;
+  final String targetUserId;
+  final ApiService _apiService = ApiService();
 
-  const NotificationsPage({super.key, required this.targetUserId});
+  NotificationsPage({super.key, required this.targetUserId});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +23,7 @@ class NotificationsPage extends StatelessWidget {
           await Future.delayed(const Duration(seconds: 1)); // Placeholder delay
         },
         child: FutureBuilder<List<NotificationModel>>(
-          future: ApiService.fetchNotificationsAll(targetUserId),
+          future: _apiService.fetchNotificationsAll(targetUserId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -44,7 +45,7 @@ class NotificationsPage extends StatelessWidget {
                 final isRead = notification.status == 'Read';
 
                 return FutureBuilder<Map<String, dynamic>>(
-                  future: ApiService.fetchPropertyDetailForUser(notification.propertyId),
+                  future: _apiService.fetchPropertyDetailForUser(notification.propertyId.toString()),
                   builder: (context, propertySnapshot) {
                     if (propertySnapshot.connectionState == ConnectionState.waiting) {
                       return const ListTile(
@@ -70,8 +71,8 @@ class NotificationsPage extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) => SenderInfoPage(
-                              userId: notification.userId,
-                              propertyId: notification.propertyId,
+                              userId: notification.userId.toString(),
+                              propertyId: notification.propertyId.toString(),
                             ),
                           ),
                         );
