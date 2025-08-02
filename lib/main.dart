@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kao_app/services/real_time_update_service.dart';
 import 'package:kao_app/utils/theme_preferences.dart';
+import 'package:kao_app/utils/video_player_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'routes.dart';
@@ -14,6 +15,10 @@ Future<void> main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpb3dobmljcnJuempreHJ4eW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzNzAzNDAsImV4cCI6MjA2ODk0NjM0MH0.fLUV57g0giqE5mc2suhzTrsi_uKDgJ1wWIfR9T9GDqs',
     debug: true,
   );
+  
+  // Start VideoPlayer initialization but DON'T await it
+  // This way it won't block app startup
+  VideoPlayerHelper().initializeVideoPlayer();
   
   RealTimeUpdateService realTimeUpdateService = RealTimeUpdateService();
   realTimeUpdateService.startPolling();

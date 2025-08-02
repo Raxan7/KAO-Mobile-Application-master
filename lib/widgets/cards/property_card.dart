@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:kao_app/services/user_preferences.dart';
 import 'package:kao_app/utils/constants.dart';
+import 'package:kao_app/utils/video_player_helper.dart';
 import 'package:kao_app/views/user/dalali_profile_in_user/screens/profile_base_screen.dart';
 import '../../models/user_property.dart';
 import '../../views/user/property_detail.dart';
@@ -79,48 +80,70 @@ class _PropertyCardState extends State<PropertyCard> {
     print('Video URL: $videoUrl');
     _disposeVideoController();
     
-    _videoController = VideoPlayerController.network(videoUrl);
-    _videoController!.initialize().then((_) {
-      if (!mounted) return;
+    try {
+      _videoController = VideoPlayerHelper().createNetworkController(videoUrl);
       
-      // Create Chewie controller
-      _chewieController = ChewieController(
-        videoPlayerController: _videoController!,
-        aspectRatio: _videoController!.value.aspectRatio,
-        autoPlay: false,
-        looping: true,
-        showControls: true,
-        placeholder: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.teal.shade400),
-          ),
-        ),
-        errorBuilder: (context, errorMessage) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error, color: Colors.red, size: 30),
-                const SizedBox(height: 4),
-                Text(
-                  'Error: $errorMessage',
-                  style: const TextStyle(color: Colors.white, fontSize: 10),
-                  textAlign: TextAlign.center,
+      // Initialize without blocking and handle errors gracefully
+      _videoController!.initialize().then((_) {
+        if (!mounted) return;
+        
+        // Create Chewie controller only after successful initialization
+        try {
+          // Make sure the controller is still valid
+          if (_videoController != null && _videoController!.value.isInitialized) {
+            _chewieController = ChewieController(
+              videoPlayerController: _videoController!,
+              aspectRatio: _videoController!.value.aspectRatio,
+              autoPlay: false,
+              looping: true,
+              showControls: true,
+              placeholder: Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.teal.shade400),
                 ),
-              ],
-            ),
-          );
-        },
-      );
-      
-      setState(() {
-        _isVideoInitialized = true;
+              ),
+              errorBuilder: (context, errorMessage) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error, color: Colors.red, size: 30),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Error: $errorMessage',
+                        style: const TextStyle(color: Colors.white, fontSize: 10),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+            
+            setState(() {
+              _isVideoInitialized = true;
+            });
+          } else {
+            print('⚠️ VIDEO CONTROLLER: Controller initialized but no longer valid');
+          }
+        } catch (e) {
+          print('❌ VIDEO CONTROLLER: Error creating Chewie controller: $e');
+          setState(() {
+            _isVideoInitialized = false;
+          });
+        }
+      }).catchError((error) {
+        print('❌ VIDEO CONTROLLER: Error initializing video: $error');
+        setState(() {
+          _isVideoInitialized = false;
+        });
       });
-    }).catchError((error) {
+    } catch (e) {
+      print('❌ VIDEO CONTROLLER: Error creating video controller: $e');
       setState(() {
         _isVideoInitialized = false;
       });
-    });
+    }
   }
   
   void _disposeVideoController() {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kao_app/services/api_service.dart';
 import 'package:kao_app/utils/video_player_helper.dart';
+import 'package:kao_app/widgets/platform_video_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'messaging_page.dart';
 import 'package:intl/intl.dart';
@@ -471,46 +472,75 @@ class _PropertyDetailState extends State<PropertyDetail> with SingleTickerProvid
                     });
                   },
                   itemCount: mediaUrls.length,
-                  itemBuilder: (context, index) {                      // Check if it's a video
+                  itemBuilder: (context, index) {
+                    // Check if it's a video
                     if (index < mediaTypes.length && mediaTypes[index] == 'video') {
                       // Log that we're trying to handle a video
                       print('🎬 PROPERTY DETAIL: Handling video at index $index, URL: ${mediaUrls[index]}');
                       
-                      // Initialize video controller if needed
-                      if (!_videoControllers.containsKey(index)) {
-                        print('🎬 PROPERTY DETAIL: Creating new video controller for index $index');
-                        print('🎬 VIDEO HELPER: Creating controller for URL: ${mediaUrls[index]}');
-                        try {
-                          final videoController = VideoPlayerController.network(mediaUrls[index]);
-                          _videoControllers[index] = videoController;
-                          
-                          // Initialize the controller
-                          videoController.initialize().then((_) {
-                            if (!mounted) return;
+                      // Use our platform-aware video player
+                      return PlatformVideoPlayer(
+                        videoUrl: mediaUrls[index],
+                        thumbnailUrl: mediaUrls[index],
+                        aspectRatio: aspectRatio,
+                        autoPlay: false,
+                        showControls: true,
+                        looping: false,
+                      );
+                    } else {
+                      // Show image
+                      return Image.network(
+                        mediaUrls[index],
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        height: double.infinity,
                             
                             print('✅ PROPERTY DETAIL: Video initialized successfully for index $index');
+                            print('📐 PROPERTY DETAIL: Video size: ${videoController.value.size}');
+                            
+                            // Calculate proper aspect ratio if available
+                            double videoAspectRatio = aspectRatio;
+                            if (videoController.value.size.width > 0 && 
+                                videoController.value.size.height > 0) {
+                              videoAspectRatio = videoController.value.aspectRatio;
+                              print('📐 PROPERTY DETAIL: Using video aspect ratio: $videoAspectRatio');
+                            }
                             
                             // Create Chewie controller
                             final chewieController = ChewieController(
                               videoPlayerController: videoController,
-                              aspectRatio: videoController.value.aspectRatio,
+                              aspectRatio: videoAspectRatio,
                               autoInitialize: true,
                               autoPlay: false,
                               looping: false,
+                              showOptions: false,
                               showControls: true,
-                              placeholder: Container(
-                                color: Colors.black,
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
-                                  ),
+                              placeholder: Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.teal.shade400),
                                 ),
                               ),
                               errorBuilder: (context, errorMessage) {
+                                print('❌ PROPERTY DETAIL ERROR: Video error: $errorMessage');
                                 return Center(
-                                  child: Text(
-                                    errorMessage,
-                                    style: TextStyle(color: Colors.white),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Error: $errorMessage',
+                                        style: const TextStyle(color: Colors.white),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          videoController.initialize().then((_) => setState(() {}));
+                                        },
+                                        child: const Text('Retry'),
+                                      ),
+                                    ],
                                   ),
                                 );
                               },
@@ -520,6 +550,9 @@ class _PropertyDetailState extends State<PropertyDetail> with SingleTickerProvid
                             setState(() {});
                           }).catchError((error) {
                             print('❌ PROPERTY DETAIL ERROR: Failed to initialize video: $error');
+                            if (error is Error) {
+                              print('❌ PROPERTY DETAIL ERROR: Stack trace: ${error.stackTrace}');
+                            }
                           });
                         } catch (e) {
                           print('❌ PROPERTY DETAIL ERROR: Exception creating video controller: $e');
